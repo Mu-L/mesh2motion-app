@@ -5,14 +5,14 @@ This is a general guide for working with Blender and how this web application ex
 ## Blender Source files
 
 I am using Blender 4.5. All the source files are in the "blender" folder at the location of this readme. There are two variations of the blender files for each rig
- - <RIG>-model.blend - Contains no animations. This has things like mirror modifiers applied to help with modeling
- - <RIG>.blend - Has the skeleton + model + animations.
+ - **RIG**-model.blend - Contains no animations. This has things like mirror modifiers applied to help with modeling
+ - **RIG**.blend - Has the skeleton + model + animations.
 
 When you make changes or create a new 3d model, export to GLB and place it in the "models" folder. This models folder is what the web app will use when loading the reference models.
 
 ## Rigs and animations
 
-The rig files are in the "blender" folder with the name <RIG>.blend. If I am making a new one, I create <RIG>.blend file with the new rig type. I import the associated GLB file from the "models" folder. I then proceed to build out the armature. 
+The rig files are in the "blender" folder with the name <RIG>.blend. If I am making a new one, I create **RIG**.blend file with the new rig type. I import the associated GLB file from the "models" folder. I then proceed to build out the armature. 
 
 ### Things to consider
 
@@ -38,6 +38,24 @@ The easiest way I have found to do this is position the hip bone where you want,
 ### No root motion
 
 For each rig, there is a root bone that should be at the origin (0,0,0). This is the parent of all the bones. Currently Mesh2Motion doesn't support root motion, so don't keyframes to that for now. Any root motion will be stripped out when Mesh2Motion loads an animation. 
+
+## Existing rigs output
+
+When the Blender animations are ready, you can export out the skeleton by itself in the "skeletons" folder as a GLB. I usually remove all the animations from the skeleton to make the skeleton size smaller. 
+
+The final animations go in the "animations" folder. It is a GLB with everything exported: mesh, skeleton, and animations. The reason we put everything in the file is that it will be used for animation previews. 
+
+
+# New Rig setup
+There will need to be programming work to actually see and test a new rig in Mesh2Motion.  Before the programming work can start you can export the following into the directories
+
+- models - put the GLB of the mesh only
+- skeletons - put the GLB of the skeleton only
+- animations - put the GLB of the mesh + skeleton + animations
+
+There needs to be a few places in code to add a new rig
+- index.html: Add an option for the model. Add an option for the skeleton
+- script.js - TODO: add references to whatever this is when I do it next
 
 
 ## Blender usage notes
