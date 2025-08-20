@@ -16,6 +16,12 @@ The rig files are in the "blender" folder with the name <RIG>.blend. If I am mak
 
 ### Things to consider
 
+### Naming bones
+
+The Three.js framework that Mesh2Motion uses does "sanitation" on object names. this means that bone names with things like "." symbols will get completely removed when it enters Mesh2Motion. This can create issues when we use those symbols for parsing to determine what might be a left or right bone. Avoid using characters like that. Models are using the _ character in places where periods are used.
+
+Reference: https://discourse.threejs.org/t/avoid-dots-and-colons-being-deleted-from-models-name/15304
+
 #### Rotation keyframes
 
 When creating animations, we generally only want to make rotation keyframes. This is because people import 3d models in Mesh2Motion that have different sized limbs. We want to make sure their limbs don't get shortened or elongated. If we make position keyframes, this can affect the results. This also makes for a smaller size animations.
