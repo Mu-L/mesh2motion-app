@@ -20,7 +20,7 @@ There are instructions built into the web application, but this is the general f
 If you want to run this locally or do any improvements, the main dependency you need is Node.js. I am using 18.15, but other versions probably work fine too.Open you command line tool to the directory this readme is in. Run ths following commands to start the web server.
 
     npm install
-    node run dev
+    npm run dev
 
 ## Running and creating video previews
 There is separate tool in the web app where you can generate video previews for each animation. It isn't too hard to run, but it has a separate README file that explains how that works. It is more of an internal tool, so I didn't want to muddy up this page too much.
