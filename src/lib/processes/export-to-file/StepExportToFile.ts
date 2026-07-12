@@ -41,7 +41,12 @@ export class StepExportToFile extends EventTarget {
       export_scene.add(final_skinned_mesh)
     })
 
-    const export_clips = this.animation_clips_to_export.map((clip) => clip.clone())
+    const export_clips = this.animation_clips_to_export.map((clip) => {
+      const cloned_clip = clip.clone()
+      // Make action names consistent by replacing any whitespace with underscores
+      cloned_clip.name = cloned_clip.name.replace(/\s+/g, '_')
+      return cloned_clip
+    })
     const restore_bone_names = ExportBoneNamingService.apply_download_settings(
       skinned_meshes,
       export_clips,
