@@ -72,7 +72,7 @@ export class Mesh2MotionEngine {
   public debugging_visual_object: Group = new Group()
 
   // when editing the skeleton, what type of mesh will we see
-  public mesh_preview_display_type: ModelPreviewDisplay = ModelPreviewDisplay.WeightPainted
+  public mesh_preview_display_type: ModelPreviewDisplay = ModelPreviewDisplay.Textured
   public transform_controls_type: TransformControlType = TransformControlType.Translation
   public transform_space_type: TransformSpace = TransformSpace.Global
 
@@ -196,18 +196,41 @@ export class Mesh2MotionEngine {
 
   public regenerate_skeleton_helper (new_skeleton: Skeleton, helper_name = 'Skeleton Helper'): void {
     // if skeleton helper exists...remove it
-    if (this.skeleton_helper !== undefined) {
-      this.scene.remove(this.skeleton_helper)
-    }
+    this.dispose_skeleton_helper()
 
     if (this.use_custom_skeleton_helper) {
-      this.skeleton_helper = new CustomSkeletonHelper(new_skeleton.bones[0], { linewidth: 4, color: 0x4e7d58 }) // line segment color
+      // no color passed, so bone shapes and joints both use the bone category colors
+      this.skeleton_helper = new CustomSkeletonHelper(new_skeleton.bones[0])
     } else {
       this.skeleton_helper = new THREE.SkeletonHelper(new_skeleton.bones[0])
     }
 
     this.skeleton_helper.name = helper_name
     this.scene.add(this.skeleton_helper)
+  }
+
+  /**
+   * Takes the current skeleton helper out of the scene and releases its GPU
+   * resources. Skipping the dispose leaked a geometry, materials and (for the
+   * custom helper) an instance matrix buffer on every rebuild, and rebuilds
+   * happen on every skeleton edit undo/redo.
+   */
+  private dispose_skeleton_helper (): void {
+    if (this.skeleton_helper === undefined) {
+      return
+    }
+
+    this.scene.remove(this.skeleton_helper)
+
+    if (this.skeleton_helper instanceof CustomSkeletonHelper) {
+      this.skeleton_helper.dispose()
+    } else {
+      // three's stock SkeletonHelper is a plain LineSegments with no dispose()
+      this.skeleton_helper.geometry.dispose()
+      ;(this.skeleton_helper.material as THREE.Material).dispose()
+    }
+
+    this.skeleton_helper = undefined
   }
 
   public sync_skeleton_helper_joint_visibility (): void {
@@ -383,9 +406,7 @@ export class Mesh2MotionEngine {
     }
     else if (this.process_step === ProcessStep.LoadSkeleton) {
       // if skeleton helper existed because we are going back to this
-      if (this.skeleton_helper !== undefined) {
-        this.scene.remove(this.skeleton_helper)
-      }
+      this.dispose_skeleton_helper()
 
       // need to change the texture display to normal material in
       this.mesh_preview_display_type = ModelPreviewDisplay.Textured
@@ -412,7 +433,6 @@ export class Mesh2MotionEngine {
 
       this.sync_skeleton_helper_joint_visibility()
 
-      this.mesh_preview_display_type = ModelPreviewDisplay.WeightPainted
       this.changed_model_preview_display(this.mesh_preview_display_type) // show weight painted mesh by default
     }
     else if (this.process_step === ProcessStep.BindPose) {
