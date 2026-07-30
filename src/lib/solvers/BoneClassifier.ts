@@ -3,14 +3,16 @@ import { type Bone } from 'three'
 /**
  * Classifies bones into categories that determine smoothing behavior.
  * - torso: spine, chest, neck — gets wider multi-ring smoothing
- * - limb: arms, legs — gets directional child-only smoothing
+ * - limb: arms, legs, head — gets directional child-only smoothing
  * - extremity: hands, feet, fingers, toes — no smoothing (stay rigid)
- * - other: root, head, unclassified — default smoothing
+ * - root: the rig driver above every anatomical bone — deforms nothing itself
+ * - other: unclassified — default smoothing
  */
 export enum BoneCategory {
   Torso = 'torso',
   Limb = 'limb',
   Extremity = 'extremity',
+  Root = 'root',
   Other = 'other'
 }
 
@@ -100,6 +102,16 @@ export class BoneClassifier {
     ]
     if (torso_keywords.some(kw => name.includes(kw))) {
       return BoneCategory.Torso
+    }
+
+    // Root: nothing anatomical in the name and no bone above it, so it drives or
+    // offsets the whole rig rather than deforming any part of the mesh. Checked
+    // last on purpose — a rig whose topmost bone IS a body part (hips as the
+    // root, common on Mixamo imports) keeps its anatomical category and the
+    // smoothing that goes with it
+    const parent_bone = bone.parent as Bone | null
+    if (parent_bone?.isBone !== true) {
+      return BoneCategory.Root
     }
 
     return BoneCategory.Other

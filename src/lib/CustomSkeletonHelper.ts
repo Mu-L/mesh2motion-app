@@ -36,6 +36,9 @@ const bone_category_colors: Record<BoneCategory, number> = {
   [BoneCategory.Torso]: 0x0E9747,
   [BoneCategory.Limb]: 0x3a86ff,
   [BoneCategory.Extremity]: 0x8338ec,
+  // the root drives the whole rig instead of deforming a body part, so it reads
+  // as neutral rather than sharing the red that flags an unrecognized bone
+  [BoneCategory.Root]: 0xFFFFFF,
   [BoneCategory.Other]: 0xff0000
 }
 
@@ -105,7 +108,7 @@ class CustomSkeletonHelper extends InstancedMesh {
       side: FrontSide, // culling backfaces makes each convex bone shape self-occlude correctly
       transparent: true, // also load bearing: keeps the helper in the transparent pass, which
       // renders after the opaque model, so the skeleton still draws over the mesh
-      opacity: options.opacity ?? 0.5,
+      opacity: options.opacity ?? 0.75,
       depthTest: false,
       depthWrite: false
     })
