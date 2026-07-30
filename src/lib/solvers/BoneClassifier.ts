@@ -71,11 +71,11 @@ export class BoneClassifier {
     const name = bone.name.toLowerCase()
 
 
-    // Extremity bones: hands, feet, fingers, toes
+    // Extremity bones: hands, feet, fingers, toes, eyes, ears
     const extremity_keywords = [
-      'hand', 'foot', 'toe', 'ball',
+      'hand', 'foot', 'feet', 'toe', 'ball',  
       'thumb', 'index', 'middle', 'ring', 'pinky', 'finger',
-      'eye', 'tongue', 'wing', 'feather'
+      'eye', 'tongue', 'wing', 'feather', 'leaf', 'ear'
     ]
     if (extremity_keywords.some(kw => name.includes(kw))) {
       return BoneCategory.Extremity
@@ -84,7 +84,7 @@ export class BoneClassifier {
     // Limb bones: upper/lower arms, thighs, calves, shoulders
     const limb_keywords = [
       'arm', 'upperarm', 'lowerarm', 'forearm', 'elbow', 'wrist',
-      'shoulder', 'clavicle', 'ankle', 'fin',
+      'shoulder', 'clavicle', 'ankle', 'fin', 'head', 'chin', 'jaw', 'mouth',
       'thigh', 'calf', 'shin', 'knee', 'leg', 'upleg', 'lowleg'
     ]
     if (limb_keywords.some(kw => name.includes(kw))) {
@@ -96,7 +96,7 @@ export class BoneClassifier {
     // to give them more smoothing since they aren't as rigid
     const torso_keywords = [
       'spine', 'chest', 'hips', 'pelvis', 'neck', 'torso', 'abdomen', 'body',
-      'tail', 'head', 'mouth', 'stomach', 'chin', 'teeth'
+      'tail', 'stomach'
     ]
     if (torso_keywords.some(kw => name.includes(kw))) {
       return BoneCategory.Torso

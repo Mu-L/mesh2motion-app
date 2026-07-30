@@ -36,7 +36,7 @@ const bone_category_colors: Record<BoneCategory, number> = {
   [BoneCategory.Torso]: 0x0E9747,
   [BoneCategory.Limb]: 0x3a86ff,
   [BoneCategory.Extremity]: 0x8338ec,
-  [BoneCategory.Other]: 0xadb5bd
+  [BoneCategory.Other]: 0xff0000
 }
 
 // shared across every helper instance. Loading this per instance meant a fresh
@@ -139,12 +139,20 @@ class CustomSkeletonHelper extends InstancedMesh {
     this.segment_draw_order = segment_bone_indices.map((_, index) => index)
 
     if (bone_classifier !== undefined) {
-      // a segment runs from its parent's joint up to its own, so it takes the
-      // category of its own bone. That matches the joint sprite on its tip
+      // a segment runs from its parent's joint up to its own, so the shape is
+      // really the body of the parent bone, and it takes the parent's category.
+      // Coloring by its own bone instead labeled the forearm as a hand and the
+      // neck as a head, since each bone's joint sits at the segment's far tip
       const segment_colors = new Float32Array(segment_bone_indices.length * 3)
+      const bone_index_by_object = new Map<any, number>()
+      bones.forEach((bone, index) => bone_index_by_object.set(bone, index))
 
       segment_bone_indices.forEach((bone_index, segment) => {
-        const bone_category = bone_classifier.get_category(bone_index)
+        // a root bone has no parent to borrow a category from, so it falls back
+        // to its own. Same fallback covers a parent outside this bone list
+        const parent = bones[bone_index].parent
+        const parent_index = parent === null ? undefined : bone_index_by_object.get(parent)
+        const bone_category = bone_classifier.get_category(parent_index ?? bone_index)
         const category_color = new Color(bone_category_colors[bone_category])
         category_color.toArray(segment_colors, segment * 3)
       })
