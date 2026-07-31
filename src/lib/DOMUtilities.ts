@@ -113,8 +113,15 @@ export class DOMUtilities {
 
           <div id="skeleton-toggle" class="styled-checkbox icon-toggle">
             <input type="checkbox" id="show-skeleton-checkbox" name="show-skeleton" value="show" style="display: none" />
-            <label for="show-skeleton-checkbox" data-tippy-content="Show skeleton" tabindex="0" style="border-radius: 0">
+            <label for="show-skeleton-checkbox" data-tippy-content="Show skeleton" tabindex="0" style="border-radius: 0; padding: 0.4rem;">
               <img src="../images/icons/bone-display.svg" class="action-icon" alt="Show skeleton" style="user-select: none" />
+            </label>
+          </div>
+
+          <div id="wireframe-toggle" class="styled-checkbox icon-toggle">
+            <input type="checkbox" id="wireframe-checkbox" name="wireframe" value="wireframe" style="display: none" />
+            <label for="wireframe-checkbox" data-tippy-content="Toggle wireframe" tabindex="0" style="border-radius: 0; padding: 0.4rem;">
+              <img src="../images/icons/wireframe.svg" class="action-icon" alt="Toggle wireframe" style="user-select: none" />
             </label>
           </div>
         </div>

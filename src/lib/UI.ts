@@ -11,6 +11,10 @@ export class UI {
   dom_show_skeleton_container: HTMLElement | null = null
   dom_show_skeleton_checkbox: HTMLInputElement | null = null
 
+  // toggle for wireframe display of the mesh
+  dom_wireframe_toggle: HTMLElement | null = null
+  dom_wireframe_checkbox: HTMLInputElement | null = null
+
   // load skeleton UI
   dom_rotate_model_x_button: HTMLButtonElement | null = null
   dom_rotate_model_y_button: HTMLButtonElement | null = null
@@ -127,6 +131,10 @@ export class UI {
     // skeleton toggle on UI viewport
     this.dom_show_skeleton_container = document.querySelector('#skeleton-toggle')
     this.dom_show_skeleton_checkbox = document.querySelector('#show-skeleton-checkbox')
+
+    // wireframe toggle on UI viewport
+    this.dom_wireframe_toggle = document.querySelector('#wireframe-toggle')
+    this.dom_wireframe_checkbox = document.querySelector('#wireframe-checkbox')
 
     // UI controls for loading the model
     this.dom_load_model_tools = document.querySelector('#load-model-tools')
