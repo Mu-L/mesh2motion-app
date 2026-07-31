@@ -1,7 +1,7 @@
 import { UI } from '../../UI.ts'
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js'
 import { type AnimationClip, Scene, type SkinnedMesh, type Object3D } from 'three'
-import { type DownloadSettings } from './DownloadSettings.ts'
+import { type DownloadSettings, ExportContents } from './DownloadSettings.ts'
 import { ExportBoneNamingService } from './ExportBoneNamingService.ts'
 
 // Note: EventTarget is a built-in interface and do not need to import it
@@ -30,43 +30,56 @@ export class StepExportToFile extends EventTarget {
 
     const export_scene = new Scene()
 
-    // When exporting to a file, we need to temporarily move the skinned mesh to a new scene
-    // skinned meshes can only be part of one scene at a time, so we must move it back to
-    // its original parent after exporting
-    const original_parents = new Map<SkinnedMesh, Object3D | null>()
-
-    skinned_meshes.forEach((final_skinned_mesh) => {
-    // Save the original parent
-      original_parents.set(final_skinned_mesh, final_skinned_mesh.parent)
-      export_scene.add(final_skinned_mesh)
-    })
-
     const export_clips = this.animation_clips_to_export.map((clip) => {
       const cloned_clip = clip.clone()
       // Make action names consistent by replacing any whitespace with underscores
       cloned_clip.name = cloned_clip.name.replace(/\s+/g, '_')
       return cloned_clip
     })
+
+    // Apply bone naming before re-parenting: the service traverses each skinned mesh to
+    // find its bones, which are still children of the mesh at this point.
     const restore_bone_names = ExportBoneNamingService.apply_download_settings(
       skinned_meshes,
       export_clips,
       download_settings.bone_naming_structure()
     )
 
+    // "Skeleton only" exports just the bone hierarchy (the root bone subtree that hangs off
+    // each skinned mesh) instead of the full skinned mesh, which excludes the mesh geometry.
+    // The animation clips still target the bone names, so the selected animations continue
+    // to work against the exported skeleton.
+    const skeleton_only = download_settings.export_contents() === ExportContents.Skeleton
+    const objects_to_export: Object3D[] = skeleton_only
+      ? Array.from(new Set(skinned_meshes.map((mesh) => mesh.skeleton.bones[0])))
+      : skinned_meshes
+
+    // When exporting to a file, we need to temporarily move the exported objects to a new
+    // scene. An object can only be part of one scene at a time, so we must move it back to
+    // its original parent after exporting. For a skeleton-only export, the root bone's
+    // original parent is its skinned mesh.
+    const original_parents = new Map<Object3D, Object3D | null>()
+
+    objects_to_export.forEach((object_to_export) => {
+      // Save the original parent
+      original_parents.set(object_to_export, object_to_export.parent)
+      export_scene.add(object_to_export)
+    })
+
     console.log('SKINNED MESH DATA TO EXPORT:', skinned_meshes)
     console.log('animations to export', export_clips)
 
     this.export_glb(export_scene, export_clips, filename)
       .then(() => {
-        // Move the skinned meshes back to their original parents
-        skinned_meshes.forEach((final_skinned_mesh) => {
-          const original_par = original_parents.get(final_skinned_mesh)
+        // Move the exported objects back to their original parents
+        objects_to_export.forEach((exported_object) => {
+          const original_par = original_parents.get(exported_object)
           if (original_par != null) {
-            original_par.add(final_skinned_mesh)
+            original_par.add(exported_object)
           } else {
             // If there was no original parent, remove it from the scene
-            export_scene.remove(final_skinned_mesh)
-            console.log('ERROR: No original parent found for skinned mesh when exporting and re-parenting to original scene')
+            export_scene.remove(exported_object)
+            console.log('ERROR: No original parent found for exported object when exporting and re-parenting to original scene')
           }
         })
 

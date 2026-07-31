@@ -188,14 +188,29 @@
                                 </button>
 
                                 <div id="download-settings" class="download-settings-panel" role="dialog" aria-label="Download settings" hidden>
-                                    <span class="download-settings-label">Exported Bone Names</span>
-                                    <fieldset id="download-bone-naming-group" class="toggle" aria-label="Bone naming structure">
-                                        <input type="radio" id="bone-naming-default" name="bone-naming-structure" value="default" checked>
-                                        <label for="bone-naming-default">Default</label>
+                                    <span class="download-settings-header">Download Options</span>
 
-                                        <input type="radio" id="bone-naming-mixamo" name="bone-naming-structure" value="mixamo">
-                                        <label for="bone-naming-mixamo">Mixamo</label>
-                                    </fieldset>
+                                    <div id="download-bone-naming-section" class="options-container">
+                                        <span class="download-settings-label">Bone Names</span>
+                                        <fieldset id="download-bone-naming-group" class="toggle" aria-label="Bone naming structure">
+                                            <input type="radio" id="bone-naming-default" name="bone-naming-structure" value="default" checked>
+                                            <label for="bone-naming-default">Default</label>
+
+                                            <input type="radio" id="bone-naming-mixamo" name="bone-naming-structure" value="mixamo">
+                                            <label for="bone-naming-mixamo">Mixamo</label>
+                                        </fieldset>
+                                    </div>
+
+                                    <div class="options-container">
+                                        <span class="download-settings-label">Contents</span>
+                                        <fieldset id="download-export-contents-group" class="toggle" aria-label="Export contents">
+                                            <input type="radio" id="export-contents-full" name="export-contents" value="full" checked>
+                                            <label for="export-contents-full">Default</label>
+
+                                            <input type="radio" id="export-contents-skeleton" name="export-contents" value="skeleton">
+                                            <label for="export-contents-skeleton">Skeleton + Animations</label>
+                                        </fieldset>
+                                    </div>
                                 </div>
                             </div>
                         </div>
