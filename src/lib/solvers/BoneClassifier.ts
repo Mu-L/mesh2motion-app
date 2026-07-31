@@ -87,7 +87,7 @@ export class BoneClassifier {
     const limb_keywords = [
       'arm', 'upperarm', 'lowerarm', 'forearm', 'elbow', 'wrist', 'nose',
       'shoulder', 'clavicle', 'ankle', 'fin', 'head', 'chin', 'jaw', 'mouth',
-      'thigh', 'calf', 'shin', 'knee', 'leg', 'upleg', 'lowleg', 'neck'
+      'thigh', 'calf', 'shin', 'knee', 'leg', 'upleg', 'lowleg', 'neck', 'humerus'
     ]
     if (limb_keywords.some(kw => name.includes(kw))) {
       return BoneCategory.Limb
@@ -98,7 +98,7 @@ export class BoneClassifier {
     // to give them more smoothing since they aren't as rigid
     const torso_keywords = [
       'spine', 'chest', 'hips', 'pelvis', 'torso', 'abdomen', 'body',
-      'tail', 'stomach', 'collar'
+      'tail', 'stomach', 'collar', 'scapula', 'ribcage'
     ]
     if (torso_keywords.some(kw => name.includes(kw))) {
       return BoneCategory.Torso
