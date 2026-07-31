@@ -69,18 +69,18 @@ export class Pose {
       // Map Name to Index
       this.nameIdx.set(j.name, j.index)
 
+      // Assign joint before parent-child linking so parent lookup never hits undefined
+      this.joints[i] = j
+
       // Link up parent-child relationshop
       if ((b.parent?.isBone)) {
         const name_index: number | undefined = this.nameIdx.get(b.parent.name)
 
         if (name_index !== undefined) {
           j.pindex = name_index
+          this.joints[j.pindex].children.push(j.index)
         }
-
-        this.joints[j.pindex].children.push(j.index)
       }
-
-      this.joints[i] = j
     }
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
