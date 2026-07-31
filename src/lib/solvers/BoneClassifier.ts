@@ -76,8 +76,8 @@ export class BoneClassifier {
     // Extremity bones: hands, feet, fingers, toes, eyes, ears
     const extremity_keywords = [
       'hand', 'foot', 'feet', 'toe', 'ball',  
-      'thumb', 'index', 'middle', 'ring', 'pinky', 'finger',
-      'eye', 'tongue', 'wing', 'feather', 'leaf', 'ear'
+      'thumb', 'index', 'middle', 'ring', 'pinky', 'finger', 'teeth',
+      'eye', 'tongue', 'wing', 'feather', 'leaf', 'ear', 'horn'
     ]
     if (extremity_keywords.some(kw => name.includes(kw))) {
       return BoneCategory.Extremity
@@ -85,9 +85,9 @@ export class BoneClassifier {
 
     // Limb bones: upper/lower arms, thighs, calves, shoulders
     const limb_keywords = [
-      'arm', 'upperarm', 'lowerarm', 'forearm', 'elbow', 'wrist',
+      'arm', 'upperarm', 'lowerarm', 'forearm', 'elbow', 'wrist', 'nose',
       'shoulder', 'clavicle', 'ankle', 'fin', 'head', 'chin', 'jaw', 'mouth',
-      'thigh', 'calf', 'shin', 'knee', 'leg', 'upleg', 'lowleg'
+      'thigh', 'calf', 'shin', 'knee', 'leg', 'upleg', 'lowleg', 'neck'
     ]
     if (limb_keywords.some(kw => name.includes(kw))) {
       return BoneCategory.Limb
@@ -97,8 +97,8 @@ export class BoneClassifier {
     // tails and feathers aren't technically torso, but we want
     // to give them more smoothing since they aren't as rigid
     const torso_keywords = [
-      'spine', 'chest', 'hips', 'pelvis', 'neck', 'torso', 'abdomen', 'body',
-      'tail', 'stomach'
+      'spine', 'chest', 'hips', 'pelvis', 'torso', 'abdomen', 'body',
+      'tail', 'stomach', 'collar'
     ]
     if (torso_keywords.some(kw => name.includes(kw))) {
       return BoneCategory.Torso
