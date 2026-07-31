@@ -40,12 +40,24 @@ export class TargetBoneTreeDialog {
       .map((root_bone) => TargetBoneTreeDialog.create_bone_tree_html(root_bone, target_bones))
       .join('')
 
+    // some imports may result where there is no hiearachy...which will create issues. show this in the view
+    // Check for flat hierarchy: if all bones are root bones (no parent-child relationships)
+    const is_flat_hierarchy = target_bones.size > 1 && root_target_bones.length === target_bones.size
+    const flat_hierarchy_warning_html = is_flat_hierarchy
+      ? `<div class="bone-tree-dialog-warning">
+          ⚠️ Flat hierarchy detected: all bones appear as root bones with no parent-child relationships.
+          This may indicate the skeleton was exported without hierarchy data (e.g. some FBX exports).
+          Retargeting will not work.
+        </div>`
+      : ''
+
     const content_html = `
       <div class="bone-tree-dialog-summary">
         <span>Total bones: ${target_bones.size}</span>
         <span>Root chains: ${root_target_bones.length}</span>
         <span>Skinned meshes: ${this.target_skinned_mesh_count}</span>
       </div>
+      ${flat_hierarchy_warning_html}
       <ul class="bone-tree-dialog-list">
         ${tree_html}
       </ul>
