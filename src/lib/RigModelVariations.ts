@@ -39,7 +39,6 @@ const FOX_TYPE = 'fox'
 export const foxVariations: ModelVariation[] = [
   createVariation(FOX_TYPE, { variant: 'fox', displayName: 'Fox' }),
   createVariation(FOX_TYPE, { variant: 'dog', displayName: 'Dog' }),
-  createVariation(FOX_TYPE, { variant: 'horse', displayName: 'Horse' }),
   createVariation(FOX_TYPE, { variant: 'cat', displayName: 'Carrot', attribution: 'David Revoy', license: 'CC-BY' }),
   createVariation(FOX_TYPE, { variant: 'panda', displayName: 'Panda' }),
 ]
