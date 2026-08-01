@@ -180,8 +180,9 @@ export class StepEditSkeleton extends EventTarget {
     this.set_mirror_mode_enabled(mirror_mode_enabled)
 
     // Initialize independent bone movement from Yes/No radio state
+    // "Move Bone Children = No" means children should move independently.
     if (this.ui.dom_independent_bone_movement_checkbox !== null) {
-      this.independent_bone_movement.set_enabled(this.ui.dom_independent_bone_movement_checkbox.checked)
+      this.independent_bone_movement.set_enabled(!this.ui.dom_independent_bone_movement_checkbox.checked)
     }
 
     if (this.ui.dom_mesh_drag_placement_radio !== null) {
