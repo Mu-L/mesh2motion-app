@@ -3,7 +3,7 @@ import { fbxGlobals } from './fbx/fbx-globals'
 import { BinaryParser } from './fbx/BinaryParser'
 import { TextParser } from './fbx/TextParser'
 import { FBXTreeParser } from './fbx/FBXTreeParser'
-import { isFbxFormatBinary, isFbxFormatASCII, getFbxVersion, convertArrayBufferToString } from './fbx/fbx-utils'
+import { isFbxFormatBinary, isFbxFormatASCII, describeFileHead, getFbxVersion, convertArrayBufferToString } from './fbx/fbx-utils'
 
 /**
  * A loader for the FBX format.
@@ -109,7 +109,11 @@ class FBXLoader extends Loader {
 
             if (!isFbxFormatASCII(FBXText)) {
 
-                throw new Error('THREE.FBXLoader: Unknown format.');
+                throw new Error(
+                    'THREE.FBXLoader: Unknown format. The file is not a binary FBX (no "Kaydara FBX Binary" ' +
+                    'magic prefix) and no FBXHeaderExtension/FBXVersion node was found in the text, so it is ' +
+                    'not an ASCII FBX either. File starts with: ' + describeFileHead(FBXText)
+                );
 
             }
 

@@ -35,41 +35,54 @@ function isFbxFormatBinary (buffer: ArrayBuffer): boolean {
 
 }
 
-/** Returns true when the text does NOT contain the binary magic prefix, indicating ASCII format. */
+/** How much of a text file to inspect when sniffing for the ASCII FBX header node. */
+const ASCII_SNIFF_LENGTH = 64 * 1024;
+
+/**
+ * Returns true when the decoded text looks like an ASCII FBX document.
+ *
+ * This replaces the upstream three.js implementation, which was doubly broken: its
+ * `read()` helper advanced by an extra character each iteration, so it sampled the
+ * triangular offsets (0, 1, 3, 6, 10, 15, 21, ...) instead of the first 20 characters,
+ * and it rejected the file on the *first* matching character rather than requiring the
+ * whole magic string. That made false rejections common -- notably, any ASCII FBX
+ * written without the leading `; FBX 7.x.x project file` comment block begins with
+ * `FBXHeaderExtension`, whose character at offset 6 is `d`, matching the 4th expected
+ * character, so such files were always misdetected as binary.
+ *
+ * Detection is now the single question it should be: a binary FBX is identified by its
+ * magic prefix, and anything else that contains an FBX header node is ASCII.
+ */
 function isFbxFormatASCII (text: string): boolean {
 
-    const CORRECT = ['K', 'a', 'y', 'd', 'a', 'r', 'a', '\\', 'F', 'B', 'X', '\\', 'B', 'i', 'n', 'a', 'r', 'y', '\\', '\\'];
+    if (text.startsWith('Kaydara FBX Binary')) return false;
 
-    let cursor = 0;
+    // The header node sits at the top of the file, so only the start needs inspecting.
+    return /FBXHeaderExtension\s*:|FBXVersion\s*:/.test(text.slice(0, ASCII_SNIFF_LENGTH));
 
-    function read (offset: number) {
+}
 
-        const result = text[offset - 1];
-        text = text.slice(cursor + offset);
-        cursor++;
-        return result;
+/**
+ * Builds a short, printable description of a file's leading characters so that an
+ * unrecognised-format error can say what was actually received (a renamed model, an
+ * HTML error page from a failed request, a compressed archive, and so on).
+ */
+function describeFileHead (text: string): string {
 
-    }
+    const printable = text.slice(0, 64).replace(/[^\x20-\x7e]/g, (char) => {
 
-    for (let i = 0; i < CORRECT.length; ++i) {
+        return '\\x' + char.charCodeAt(0).toString(16).padStart(2, '0');
 
-        const num = read(1);
-        if (num === CORRECT[i]) {
+    });
 
-            return false;
-
-        }
-
-    }
-
-    return true;
+    return JSON.stringify(printable);
 
 }
 
 /** Extracts the numeric FBX version from the `FBXVersion` header line. Throws if not found. */
 function getFbxVersion (text: string): number {
 
-    const versionRegExp = /FBXVersion: (\d+)/;
+    const versionRegExp = /FBXVersion:\s*(\d+)/;
     const match = text.match(versionRegExp);
 
     if (match) {
@@ -337,6 +350,7 @@ export {
     type FBXAttributeInfo,
     isFbxFormatBinary,
     isFbxFormatASCII,
+    describeFileHead,
     getFbxVersion,
     convertFBXTimeToSeconds,
     dataArray,

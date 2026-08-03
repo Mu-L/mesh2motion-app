@@ -13,6 +13,8 @@ class TextParser {
     currentProp!: FBXNode | unknown[];
     currentPropName: string | undefined
     allNodes: FBXTree = new FBXTree();
+    /** 1-based line number currently being processed, used only for error messages. */
+    currentLineNumber: number = 0;
 
     getPrevNode (): FBXNode {
 
@@ -68,14 +70,23 @@ class TextParser {
 
         split.forEach(function (line, i) {
 
+            scope.currentLineNumber = i + 1;
+
             const matchComment = line.match(/^[\s\t]*;/);
             const matchEmpty = line.match(/^[\s\t]*$/);
 
             if (matchComment || matchEmpty) return;
 
-            const matchBeginning = line.match('^\\t{' + scope.currentIndent + '}(\\w+):(.*){');
+            // The `{` and `}` patterns are anchored to end-of-line. Without the anchor a
+            // property whose *value* contains a brace -- a Windows path with a {token}, a
+            // GUID, a material name -- was read as a block delimiter, pushing or popping the
+            // node stack and permanently desynchronising the indent from the file.
+            const matchBeginning = line.match('^\\t{' + scope.currentIndent + '}(\\w+):(.*)\\{\\s*$');
             const matchProperty = line.match('^\\t{' + (scope.currentIndent) + '}(\\w+):[\\s\\t\\r\\n](.*)');
-            const matchEnd = line.match('^\\t{' + (scope.currentIndent - 1) + '}}');
+            // At indent 0 there is nothing to close, and '\t{-1}' is not a valid quantifier.
+            const matchEnd = scope.currentIndent > 0
+                ? line.match('^\\t{' + (scope.currentIndent - 1) + '}\\}\\s*$')
+                : null;
 
             if (matchBeginning) {
 
@@ -208,6 +219,28 @@ class TextParser {
         }
 
         const currentNode = this.getCurrentNode();
+
+        if (currentNode === undefined) {
+
+            // Document-level properties such as `CreationTime:` and `Creator:` sit outside
+            // any block, so there is no node on the stack to attach them to -- they belong on
+            // the tree root. Upstream three.js read `currentNode.name` unconditionally and
+            // failed here with "Cannot read properties of undefined (reading 'name')".
+            if (this.currentIndent === 0) {
+
+                this.allNodes.add(propName, propValue);
+                return;
+
+            }
+
+            throw new Error(
+                'THREE.FBXLoader: Malformed ASCII FBX. Expected an open node at indent ' +
+                this.currentIndent + ' but the node stack holds ' + this.nodeStack.length +
+                ' entries, on line ' + this.currentLineNumber + ': ' + JSON.stringify(line.slice(0, 120))
+            );
+
+        }
+
         const parentName = currentNode.name;
 
         if (parentName === 'Properties70') {
@@ -273,6 +306,15 @@ class TextParser {
     parseNodePropertyContinued (line: string): void {
 
         const currentNode = this.getCurrentNode();
+
+        // Only array properties (`a:`) are continued across lines. Anything else reaching here
+        // is a line the dispatcher could not classify, so there is nothing to append it to.
+        if (currentNode === undefined || currentNode.a === undefined) {
+
+            console.warn('THREE.FBXLoader: Skipping unrecognised line ' + this.currentLineNumber + ': ' + JSON.stringify(line.slice(0, 120)));
+            return;
+
+        }
 
         currentNode.a += line;
 
