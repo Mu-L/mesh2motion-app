@@ -213,15 +213,18 @@ export class ModelAnalysisReport {
   private static describe_single_material (material: Material): string {
     const parts: string[] = [material.type]
 
+    // texture file name
     if (material.name !== '') {
       parts.push(`"${material.name}"`)
     }
 
     // a missing texture map is a common reason a model imports looking flat/grey
+    // we already show info about the material type if it exists, so don't show anything if we have a map
     const has_map: boolean = (material as any).map !== undefined && (material as any).map !== null
     parts.push(has_map ? 'textured' : 'no texture')
 
-    parts.push(this.describe_material_side(material.side))
+    // single side, double sided, etc.
+     parts.push(this.describe_material_side(material.side))
 
     return parts.join(' / ')
   }
@@ -320,17 +323,17 @@ export class ModelAnalysisReport {
       ? '<p>No model has been imported yet.</p>'
       : this.build_html(analysis)
 
-    new ModalDialog('Model Analysis', content, { customClass: 'model-analysis-dialog' }).show()
+    new ModalDialog('3D Model Import Analysis', content, { customClass: 'model-analysis-dialog' }).show()
   }
 
   public static build_html (analysis: ModelImportAnalysis): string {
     return `
       <div class="model-analysis">
-        <p class="model-analysis-source">Source: <strong>${this.escape_html(analysis.source_name)}</strong></p>
+
         ${this.build_warnings_html(analysis)}
-        ${this.build_summary_html(analysis)}
+
         ${this.build_mesh_table_html(analysis.imported)}
-        ${this.build_contents_html(analysis.imported)}
+
       </div>
     `
   }
@@ -423,67 +426,54 @@ export class ModelAnalysisReport {
       return ''
     }
 
-    const rows: string = snapshot.objects
+    const cards: string = snapshot.objects
       .map((analyzed) => `
-        <tr${analyzed.warnings.length > 0 ? ' class="model-analysis-row-flagged"' : ''}>
-          <td>
-            <span class="model-analysis-name" style="padding-left: ${analyzed.depth * 0.75}rem">${this.escape_html(analyzed.name)}</span>
-            <span class="model-analysis-parent">${this.escape_html(this.describe_parentage(analyzed))}</span>
-          </td>
-          <td>${this.escape_html(analyzed.type)}</td>
-          <td>${this.escape_html(this.format_vector(analyzed.position))}</td>
-          <td>${this.escape_html(this.format_vector(analyzed.rotation_degrees))}</td>
-          <td>${this.escape_html(this.format_vector(analyzed.scale))}</td>
-          <td>${this.escape_html(this.format_vector(analyzed.world_scale))}</td>
-          <td>${this.escape_html(this.format_vector(analyzed.world_size, ' x '))}</td>
-          <td>${analyzed.vertex_count.toLocaleString()}</td>
-          <td>${analyzed.triangle_count.toLocaleString()}</td>
-          <td>${this.escape_html(analyzed.material_summary)}</td>
-        </tr>
+        <li class="model-analysis-object-card${analyzed.warnings.length > 0 ? ' model-analysis-object-card-flagged' : ''}">
+            <span class="model-analysis-name">${this.escape_html(analyzed.name)}</span>
+            <span class="model-analysis-parent">Parent: ${this.escape_html(this.describe_parentage(analyzed))}</span>
+            ${this.build_mesh_properties_html(analyzed)}
+        </li>
       `)
       .join('')
 
     return `
-      <h3>Meshes in the file (${snapshot.objects.length})</h3>
-      <p class="model-analysis-note">Transforms below are as authored in the file, and are baked into the vertices on import so the model keeps this orientation, placement, and scale. Rotation is in degrees. World scale includes any scale inherited from parent objects.</p>
-      <div class="model-analysis-table-scroll">
-        <table class="model-analysis-table">
-          <thead>
-            <tr>
-              <th scope="col">Name</th>
-              <th scope="col">Type</th>
-              <th scope="col">Position</th>
-              <th scope="col">Rotation</th>
-              <th scope="col">Scale</th>
-              <th scope="col">World scale</th>
-              <th scope="col">Size</th>
-              <th scope="col">Verts</th>
-              <th scope="col">Tris</th>
-              <th scope="col">Material</th>
-            </tr>
-          </thead>
-          <tbody>${rows}</tbody>
-        </table>
-      </div>
+      <h3>${snapshot.objects.length} mesh(es) in the file</h3>
+      <p class="model-analysis-note">Transforms come directly from loaded file. For them to work in Mesh2Motion, they are "baked" into the vertices on import. Rotation is in degrees. World scale includes any scale inherited from parent objects.</p>
+      <ul class="model-analysis-object-list">${cards}</ul>
     `
   }
 
-  private static build_contents_html (snapshot: SceneSnapshot): string {
-    const type_names: string[] = Object.keys(snapshot.type_counts).sort()
-
-    if (type_names.length === 0) {
-      return ''
-    }
-
-    const chips: string = type_names
-      .map((type_name) => `<span class="model-analysis-chip">${this.escape_html(type_name)} x ${snapshot.type_counts[type_name]}</span>`)
-      .join('')
+  private static build_mesh_properties_html (analyzed: AnalyzedObject): string {
+    const properties: Array<[string, string]> = [
+      ['Type', analyzed.type],
+      ['Position', this.format_vector(analyzed.position)],
+      ['Rotation', this.format_vector(analyzed.rotation_degrees)],
+      ['Scale', this.format_vector(analyzed.scale)],
+      ['World scale', this.format_vector(analyzed.world_scale)],
+      ['Size', this.format_vector(analyzed.world_size, ' x ')],
+      ['Vertices', analyzed.vertex_count.toLocaleString()],
+      ['Triangles', analyzed.triangle_count.toLocaleString()],
+      ['Material', analyzed.material_summary],
+      ['UVs', analyzed.has_uvs ? 'yes' : 'no'],
+      ['Normals', analyzed.has_normals ? 'yes' : 'no'],
+      ['Skin weights', analyzed.has_skin_weights ? 'yes' : 'no']
+    ]
 
     return `
-      <h3>Everything in the file</h3>
-      <div class="model-analysis-chips">${chips}</div>
+      <ul class="model-analysis-object-properties-inline">
+        ${properties
+          .map(([label, value]) => `
+            <li class="model-analysis-object-property-inline">
+              <span class="model-analysis-object-property-label">${this.escape_html(label)}:</span>
+              <span class="model-analysis-object-property-value">${this.escape_html(value)}</span>
+            </li>
+          `)
+          .join('')}
+      </ul>
     `
   }
+
+
 
   /**
    * One line describing where a mesh sits and whether anything above it is

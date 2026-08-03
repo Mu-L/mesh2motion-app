@@ -53,7 +53,7 @@
 
 .modal-dialog-content * {
    color: var(--text-primary);
-   font-size: 1.1rem;
+   font-size: 1.0rem;
    margin: 0.5rem;
    line-height: 125%;
 }
@@ -264,7 +264,7 @@
 
 .model-analysis-dialog .model-analysis-table-scroll {
   display: block;
-  overflow-x: auto;
+  overflow-x: visible;
   margin: 0;
 }
 
@@ -282,14 +282,14 @@
   font-size: 0.95rem;
   line-height: 130%;
   text-align: left;
-  white-space: nowrap;
+  white-space: normal;
   border-bottom: 1px solid var(--border-color);
+  vertical-align: top;
 }
 
 .model-analysis-dialog .model-analysis-table thead th {
-  font-weight: 600;
-  opacity: 0.7;
   border-bottom: 1px solid var(--text-primary);
+  font-weight: normal;
 }
 
 .model-analysis-dialog .model-analysis-table tbody th {
@@ -297,20 +297,82 @@
   opacity: 0.7;
 }
 
-.model-analysis-dialog .model-analysis-row-flagged td {
-  background: color-mix(in srgb, var(--button-primary-bg) 12%, transparent);
+.model-analysis-dialog .model-analysis-object-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.model-analysis-dialog .model-analysis-object-card {
+  margin: 0;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.4rem;
+  background: color-mix(in srgb, var(--bg-primary) 80%, transparent);
+}
+
+.model-analysis-dialog .model-analysis-object-card-flagged {
+  padding: 2rem;
+  background: color-mix(in srgb, var(--bg-primary) 30%, transparent);
 }
 
 .model-analysis-dialog .model-analysis-name {
-  display: block;
+  display: inline-flex;
   margin: 0;
+  font-size: 1.5rem;
 }
 
 .model-analysis-dialog .model-analysis-parent {
-  display: block;
+  display: inline-flex;
+  opacity: 0.7;
+}
+
+.model-analysis-dialog .model-analysis-object-properties-inline {
   margin: 0;
-  font-size: 0.85rem;
-  opacity: 0.6;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.6rem;
+  list-style: none;
+}
+
+.model-analysis-dialog .model-analysis-object-property-inline {
+  margin: 0;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.model-analysis-dialog .model-analysis-object-property-inline::after {
+  content: '•';
+  margin-left: 0.6rem;
+  opacity: 0.45;
+}
+
+.model-analysis-dialog .model-analysis-object-property-inline:last-child::after {
+  content: '';
+  margin: 0;
+}
+
+.model-analysis-dialog .model-analysis-object-property-label {
+  margin: 0;
+  opacity: 0.7;
+}
+
+.model-analysis-dialog .model-analysis-object-property-value {
+  margin: 0;
+  font-size: 0.92rem;
+}
+
+@media (max-width: 900px) {
+  .model-analysis-dialog .model-analysis-object-properties-inline {
+    gap: 0.15rem 0.45rem;
+  }
+
+  .model-analysis-dialog .model-analysis-object-property-inline::after {
+    margin-left: 0.45rem;
+  }
 }
 
 .model-analysis-dialog .model-analysis-chips {
