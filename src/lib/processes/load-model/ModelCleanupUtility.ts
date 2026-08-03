@@ -1,4 +1,4 @@
-import { Box3, Group, type Object3DEventMap, type Object3D, Scene, Mesh, MeshPhongMaterial, type SkinnedMesh } from 'three'
+import { Box3, type BufferGeometry, Group, Matrix4, type Object3DEventMap, type Object3D, Scene, Mesh, MeshPhongMaterial, type SkinnedMesh } from 'three'
 import { FrontSide } from 'three/src/constants.js'
 
 /**
@@ -93,6 +93,88 @@ export class ModelCleanupUtility {
     })
   }
 
+  /**
+   * Applies each mesh's world transform to its vertices, then clears every
+   * transform in the hierarchy.
+   *
+   * The skinning process works from raw geometry and ignores object transforms,
+   * so it needs those transforms to be identity. Baking gets us that without
+   * throwing away the orientation, placement, and scale the model was authored
+   * with, which is what happens if the transforms are simply reset to defaults.
+   * @param model_data root of the hierarchy to flatten transforms on
+   */
+  public static bake_transforms_into_geometry (model_data: Object3D): void {
+    model_data.updateMatrixWorld(true)
+
+    // capture the world matrices up front, since clearing transforms below invalidates them
+    const meshes_to_bake: Array<{ mesh: Mesh, world_matrix: Matrix4 }> = []
+    model_data.traverse((child: Object3D) => {
+      if (child.type === 'Mesh' || child.type === 'SkinnedMesh') {
+        meshes_to_bake.push({ mesh: child as Mesh, world_matrix: child.matrixWorld.clone() })
+      }
+    })
+
+    meshes_to_bake.forEach(({ mesh, world_matrix }) => {
+      if (mesh.geometry === undefined || mesh.geometry === null) {
+        return
+      }
+
+      // geometry can be shared between meshes that have different transforms,
+      // so each mesh needs its own copy before we bake anything into it
+      const baked_geometry: BufferGeometry = mesh.geometry.clone()
+      baked_geometry.name = mesh.geometry.name
+      baked_geometry.applyMatrix4(world_matrix)
+
+      // a mirrored transform reverses triangle winding, which renders the mesh
+      // inside out unless we put the winding back
+      if (world_matrix.determinant() < 0) {
+        this.flip_face_winding(baked_geometry)
+      }
+
+      baked_geometry.computeBoundingBox()
+      baked_geometry.computeBoundingSphere()
+      mesh.geometry = baked_geometry
+    })
+
+    // every transform is part of the geometry now, so none of them should apply twice
+    model_data.traverse((child: Object3D) => {
+      child.position.set(0, 0, 0)
+      child.quaternion.identity()
+      child.scale.set(1, 1, 1)
+      child.updateMatrix()
+    })
+
+    model_data.updateMatrixWorld(true)
+  }
+
+  /** Reverses the vertex order of every triangle so faces point the other way. */
+  private static flip_face_winding (geometry: BufferGeometry): void {
+    const index = geometry.getIndex()
+
+    if (index !== null) {
+      for (let triangle_start = 0; triangle_start + 2 < index.count; triangle_start += 3) {
+        const first_vertex: number = index.getX(triangle_start)
+        index.setX(triangle_start, index.getX(triangle_start + 2))
+        index.setX(triangle_start + 2, first_vertex)
+      }
+      index.needsUpdate = true
+      return
+    }
+
+    // non-indexed geometry stores each triangle inline, so the outer vertices of
+    // every triangle have to be swapped across every attribute to stay in sync
+    Object.values(geometry.attributes).forEach((attribute) => {
+      for (let triangle_start = 0; triangle_start + 2 < attribute.count; triangle_start += 3) {
+        for (let component = 0; component < attribute.itemSize; component++) {
+          const first_value: number = attribute.getComponent(triangle_start, component)
+          attribute.setComponent(triangle_start, component, attribute.getComponent(triangle_start + 2, component))
+          attribute.setComponent(triangle_start + 2, component, first_value)
+        }
+      }
+      attribute.needsUpdate = true
+    })
+  }
+
   public static strip_out_all_unecessary_model_data (model_data: Scene, model_display_name: string, debug_model_loading: boolean): Scene {
     const new_scene = new Scene()
     new_scene.name = model_display_name
@@ -105,7 +187,9 @@ export class ModelCleanupUtility {
         new_mesh.name = child.name
         new_scene.add(new_mesh)
       } else if (child.type === 'Mesh') {
-        new_mesh = (child as Mesh).clone()
+        // clone without children, otherwise a mesh nested under another mesh gets
+        // added once as part of its parent's clone and again when traverse reaches it
+        new_mesh = (child as Mesh).clone(false)
         new_mesh.name = child.name
         new_scene.add(new_mesh)
       }

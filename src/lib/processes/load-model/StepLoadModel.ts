@@ -10,6 +10,7 @@ import { MathUtils } from 'three/src/math/MathUtils.js'
 import { BufferGeometry, Group, MeshPhongMaterial, Object3DEventMap, type Material, type Object3D } from 'three'
 import { ModalDialog } from '../../ModalDialog.ts'
 import { ModelCleanupUtility } from './ModelCleanupUtility.ts'
+import { ModelAnalysisReport, type ModelImportAnalysis, type SceneSnapshot } from './ModelAnalysisReport.ts'
 import { PlatformUtils } from '../../PlatformUtils.ts'
 
 // Note: EventTarget is a built-ininterface and do not need to import it
@@ -25,6 +26,12 @@ export class StepLoadModel extends EventTarget {
   private debug_model_loading: boolean = false
 
   private model_display_name: string = 'Imported Model'
+
+  // file the user picked, only used for labeling the analysis report
+  private source_file_name: string = 'Unknown file'
+
+  // diagnostic snapshot of what the file contained vs. what import produced
+  private import_analysis: ModelImportAnalysis | null = null
 
   // there can be multiple objects in a model, so store them in a list
   private readonly geometry_list: BufferGeometry[] = []
@@ -168,6 +175,7 @@ export class StepLoadModel extends EventTarget {
       this.ui.dom_upload_model_button.addEventListener('change', (event: Event) => {
         const file = event.target.files[0]
         const file_extension: string = this.get_file_extension(file.name)
+        this.source_file_name = file.name
 
         const reader = new FileReader()
         reader.readAsDataURL(file)
@@ -199,6 +207,7 @@ export class StepLoadModel extends EventTarget {
         if (model_selection !== null) {
           const file_name = model_selection.options[model_selection.selectedIndex].value
           const file_extension: string = this.get_file_extension(file_name)
+          this.source_file_name = file_name.split('/').pop() ?? file_name
           this.load_model_file(file_name, file_extension)
         }
       })
@@ -234,6 +243,7 @@ export class StepLoadModel extends EventTarget {
     this.objects_count = 0
     this.mesh_has_broken_material = false
     this.preserve_skinned_mesh = false
+    this.import_analysis = null
   }
 
   public reset_model_position (): void {
@@ -342,6 +352,11 @@ export class StepLoadModel extends EventTarget {
   }
 
   private process_loaded_scene (loaded_scene: Scene): void {
+    // capture the file contents before any cleanup/normalization runs. this has to
+    // happen first because the steps below mutate geometry that is shared with the
+    // scene the loader handed us
+    const imported_snapshot: SceneSnapshot = ModelAnalysisReport.snapshot_scene(loaded_scene)
+
     if (this.preserve_skinned_mesh) {
       this.original_model_data = loaded_scene
     } else {
@@ -360,6 +375,11 @@ export class StepLoadModel extends EventTarget {
       // and mess up the skinned mesh and exports. So for now, just keep everything
       clean_scene_with_only_models = this.original_model_data
     } else {
+      // bake object transforms into the vertices before flattening the hierarchy.
+      // stripping and rebuilding meshes below drops object transforms entirely, so
+      // this is what keeps the orientation, placement, and scale from the file.
+      // skipped for skinned meshes, where baking would break the skeleton binding
+      ModelCleanupUtility.bake_transforms_into_geometry(this.original_model_data)
       clean_scene_with_only_models = ModelCleanupUtility.strip_out_all_unecessary_model_data(this.original_model_data, this.model_display_name, this.debug_model_loading)
     }
 
@@ -378,19 +398,15 @@ export class StepLoadModel extends EventTarget {
     // any scaling or further processing can be donw as part of the retargeting process
     if (this.preserve_skinned_mesh) {
       this.final_retargetable_model_data = clean_scene_with_only_models
+      this.import_analysis = this.build_import_analysis(imported_snapshot, this.final_retargetable_model_data)
       this.dispatchEvent(new CustomEvent('modelLoadedForRetargeting'))
       return
     }
 
-    // loop through each child in scene and reset rotation
-    // if we don't the skinning process doesn't take rotation into account
-    // and creates odd results
-    clean_scene_with_only_models.traverse((child) => {
-      child.rotation.set(0, 0, 0)
-      child.scale.set(1, 1, 1)
-      child.updateMatrix() // helps re-calculate bounding box for scaling later
-      child.updateMatrixWorld() // helps re-calculate bounding box for scaling later
-    })
+    // every transform is already baked into the geometry at this point, so the
+    // skinning process sees the identity transforms it needs. just make sure the
+    // matrices are current for the bounding box calculations below
+    clean_scene_with_only_models.updateMatrixWorld(true)
 
     // Some objects come in very large, which makes it harder to work with
     // scale everything down to a max height. mutate the clean scene object
@@ -416,7 +432,25 @@ export class StepLoadModel extends EventTarget {
 
     console.log('final mesh data should be prepared at this point', this.final_mesh_data)
 
+    this.import_analysis = this.build_import_analysis(imported_snapshot, this.final_mesh_data)
+
     this.dispatchEvent(new CustomEvent('modelLoaded'))
+  }
+
+  private build_import_analysis (imported_snapshot: SceneSnapshot, processed_scene: Scene): ModelImportAnalysis {
+    return {
+      source_name: this.source_file_name,
+      imported: imported_snapshot,
+      processed: ModelAnalysisReport.snapshot_scene(processed_scene)
+    }
+  }
+
+  /**
+   * Diagnostic breakdown of the last import, or null if nothing is loaded yet.
+   * Used by the "Analyze" option to help troubleshoot odd looking models.
+   */
+  public get_import_analysis (): ModelImportAnalysis | null {
+    return this.import_analysis
   }
 
   public model_meshes (): Scene {

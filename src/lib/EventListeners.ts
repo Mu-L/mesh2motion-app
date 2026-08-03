@@ -4,6 +4,7 @@ import { ProcessStep } from './enums/ProcessStep'
 import { TransformSpace } from './enums/TransformSpace'
 import { Utility } from './Utilities'
 import { ModelCleanupUtility } from './processes/load-model/ModelCleanupUtility'
+import { ModelAnalysisReport } from './processes/load-model/ModelAnalysisReport'
 import { DownloadSuccessDialog } from './components/download-success/DownloadSuccessDialog'
 import { type Bone, type Material, type MeshBasicMaterial, type MeshPhongMaterial, type MeshStandardMaterial } from 'three'
 
@@ -207,6 +208,11 @@ export class EventListeners {
 
     this.bootstrap.ui.dom_rotate_model_z_button?.addEventListener('click', () => {
       this.bootstrap.load_model_step.rotate_model_geometry('z', 90)
+    })
+
+    // show a breakdown of what was found in the imported file
+    this.bootstrap.ui.dom_analyze_model_link?.addEventListener('click', () => {
+      ModelAnalysisReport.show_dialog(this.bootstrap.load_model_step.get_import_analysis())
     })
 
     // Reset model position to import state
