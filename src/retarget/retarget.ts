@@ -25,7 +25,6 @@ class RetargetModule {
     this.mesh2motion_engine = new Mesh2MotionEngine()
     const camera_position = new Vector3().set(3, 2, 15)
     this.mesh2motion_engine.set_camera_position(camera_position)
-    this.mesh2motion_engine.set_custom_skeleton_helper_enabled(false)
 
     // Override zoom limits for retargeting to accommodate models of various sizes
     // Allow closer zoom for small details and farther zoom for large models

@@ -1,7 +1,8 @@
-import { Group, Object3D, Scene, SkeletonHelper } from 'three'
+import { Group, Object3D, Scene } from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { SkeletonType } from '../../lib/enums/SkeletonType.ts'
 import { RigConfig } from '../../lib/RigConfig.ts'
+import { CustomSkeletonHelper } from '../../lib/CustomSkeletonHelper.ts'
 import { DOMUtilities } from '../../lib/DOMUtilities.ts'
 import type GLTFResult from '../../lib/processes/load-skeleton/interfaces/GLTFResult.ts'
 import { ModalDialog } from '../../lib/ModalDialog.ts'
@@ -10,7 +11,7 @@ export class StepLoadSourceSkeleton extends EventTarget {
   private readonly loader: GLTFLoader = new GLTFLoader() // all skeletons are in GLB format
   private readonly _main_scene: Scene
   private loaded_source_armature: Group = new Group()
-  private skeleton_helper: SkeletonHelper | null = null
+  private skeleton_helper: CustomSkeletonHelper | null = null
   private _added_event_listeners: boolean = false
 
   private skeleton_type: SkeletonType = SkeletonType.None
@@ -153,9 +154,15 @@ export class StepLoadSourceSkeleton extends EventTarget {
     // Add the source skeleton to the scene
     this._main_scene.add(this.loaded_source_armature)
 
-    // Create skeleton helper for visualization
-    this.skeleton_helper = new SkeletonHelper(this.loaded_source_armature)
+    // Create skeleton helper for visualization. Same octahedral, bone category
+    // colored helper the rest of the app uses so the source rig reads the same
+    // here as it does on the create page
+    this.skeleton_helper = new CustomSkeletonHelper(this.loaded_source_armature)
     this.skeleton_helper.name = 'Source Skeleton Helper (Mesh2Motion)'
+
+    // joint points are an edit skeleton affordance. Nothing is editable here
+    this.skeleton_helper.setJointsVisible(false)
+
     this._main_scene.add(this.skeleton_helper)
 
     console.log('Source skeleton added to scene with helper')
@@ -168,12 +175,14 @@ export class StepLoadSourceSkeleton extends EventTarget {
       console.log('Removed previous source armature from scene')
     }
 
-    // Remove previous skeleton helper from scene
+    // Remove previous skeleton helper from scene. The dispose is what releases
+    // its geometry, materials and instance matrix buffer. Skipping it leaked
+    // those every time the skeleton dropdown changed
     if (this.skeleton_helper !== null) {
-      if (this.skeleton_helper.parent !== null) {
-        this._main_scene.remove(this.skeleton_helper)
-        console.log('Removed previous skeleton helper from scene')
-      }
+      this._main_scene.remove(this.skeleton_helper)
+      this.skeleton_helper.dispose()
+      this.skeleton_helper = null
+      console.log('Removed previous skeleton helper from scene')
     }
   }
 

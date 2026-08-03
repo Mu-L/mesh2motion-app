@@ -67,8 +67,7 @@ export class Mesh2MotionEngine {
 
   // for looking at specific bones
   public process_step: ProcessStep = ProcessStep.LoadModel
-  public skeleton_helper: CustomSkeletonHelper | THREE.SkeletonHelper | undefined = undefined
-  public use_custom_skeleton_helper: boolean = true // retargeting doesn't use this
+  public skeleton_helper: CustomSkeletonHelper | undefined = undefined
   public debugging_visual_object: Group = new Group()
 
   // when editing the skeleton, what type of mesh will we see
@@ -173,10 +172,6 @@ export class Mesh2MotionEngine {
     this.scene_environment.set_zoom_limits(min_distance, max_distance)
   }
 
-  public set_custom_skeleton_helper_enabled (enabled: boolean): void {
-    this.use_custom_skeleton_helper = enabled
-  }
-
   public set_fog_enabled (enabled: boolean): void {
     this.scene_environment.set_fog_enabled(enabled)
   }
@@ -198,22 +193,17 @@ export class Mesh2MotionEngine {
     // if skeleton helper exists...remove it
     this.dispose_skeleton_helper()
 
-    if (this.use_custom_skeleton_helper) {
-      // no color passed, so bone shapes and joints both use the bone category colors
-      this.skeleton_helper = new CustomSkeletonHelper(new_skeleton.bones[0])
-    } else {
-      this.skeleton_helper = new THREE.SkeletonHelper(new_skeleton.bones[0])
-    }
-
+    // no color passed, so bone shapes and joints both use the bone category colors
+    this.skeleton_helper = new CustomSkeletonHelper(new_skeleton.bones[0])
     this.skeleton_helper.name = helper_name
     this.scene.add(this.skeleton_helper)
   }
 
   /**
    * Takes the current skeleton helper out of the scene and releases its GPU
-   * resources. Skipping the dispose leaked a geometry, materials and (for the
-   * custom helper) an instance matrix buffer on every rebuild, and rebuilds
-   * happen on every skeleton edit undo/redo.
+   * resources. Skipping the dispose leaked a geometry, materials and an
+   * instance matrix buffer on every rebuild, and rebuilds happen on every
+   * skeleton edit undo/redo.
    */
   private dispose_skeleton_helper (): void {
     if (this.skeleton_helper === undefined) {
@@ -221,20 +211,12 @@ export class Mesh2MotionEngine {
     }
 
     this.scene.remove(this.skeleton_helper)
-
-    if (this.skeleton_helper instanceof CustomSkeletonHelper) {
-      this.skeleton_helper.dispose()
-    } else {
-      // three's stock SkeletonHelper is a plain LineSegments with no dispose()
-      this.skeleton_helper.geometry.dispose()
-      ;(this.skeleton_helper.material as THREE.Material).dispose()
-    }
-
+    this.skeleton_helper.dispose()
     this.skeleton_helper = undefined
   }
 
   public sync_skeleton_helper_joint_visibility (): void {
-    if (!(this.skeleton_helper instanceof CustomSkeletonHelper)) {
+    if (this.skeleton_helper === undefined) {
       return
     }
 
