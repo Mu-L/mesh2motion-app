@@ -256,6 +256,7 @@ button.secondary-button.play
     margin-right: 0;
     border: 1px solid var(--bg-tertiary);
     transform: scale(1.0);
+    flex-grow: 0;
 }
 button.secondary-button.play:hover {
     border: 1px solid var(--text-primary);
@@ -528,16 +529,14 @@ option {
 
 #animations-items{
     max-height: calc(100vh - 22rem);
-    display: inline-flex;
+    display: flex;
     overflow: auto;;
-    flex-direction: row;
+    flex-direction: column;
     margin-bottom: 1rem;
     background: var(--bg-alternate);
     border: 1px solid var(--bg-tertiary);
-    gap: 0.25rem;
-    flex-wrap: wrap;
+    gap: 0.2rem;
     overflow-x: hidden;
-    width: 24rem; /* creates 3 column of animation items */
 }
 
 #animations-items.create-page {
@@ -546,7 +545,7 @@ option {
 }
 
 #animations-items div {
-    display: inline-flex;
+    display: flex;
     padding: 0;
 }
 /* have every other div child be a different background color */
@@ -559,15 +558,15 @@ option {
 
 .anim-item, .anim-custom-item {
     display: flex;
-    flex-direction: column;
-    justify-content: space-between;
+    flex-direction: row;
+    align-items: stretch;
+    justify-content: flex-start;
     padding: 0;
 
     transition: box-shadow 0.2s ease-in-out;
 
-    /* specify dimensions helps grid layout without jumbling elements */
-    width: 103px;
-    height: 160px;
+    width: 100%;
+    min-height: 64px;
 }
 
 .anim-custom-item {
@@ -577,10 +576,102 @@ option {
 
 
 .anim-preview-label {
-    font-size: 90%;
+    font-size: 88%;
     cursor: pointer;
-    line-height: 110%;
+    line-height: 120%;
     text-align: left;
+}
+
+.anim-play-button {
+    margin: 0;
+    border-radius: 0;
+    width: 84px;
+    min-width: 84px;
+    height: 64px;
+    border-right: 1px solid var(--bg-tertiary);
+    position: relative;
+    overflow: hidden;
+}
+
+.anim-play-button .anim-preview-placeholder,
+.anim-play-button .anim-preview {
+    width: 76px;
+    height: 56px;
+    margin: auto;
+    border-radius: 2px;
+    background: var(--bg-primary);
+    object-fit: cover;
+}
+
+.anim-row-content {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 0.2rem;
+    padding: 0.2rem 0.3rem;
+}
+
+.anim-row-checkbox {
+    margin: 0;
+    width: 100%;
+    min-width: 0;
+}
+
+.anim-row-checkbox .anim-preview-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.anim-mirror-segmented {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid var(--bg-tertiary);
+    border-radius: 999px;
+    padding: 0.1rem;
+    margin: 0 0 0 1.75rem;
+    gap: 0.1rem;
+    white-space: nowrap;
+    flex-direction: row;
+}
+
+.anim-item[data-selected="false"] .anim-mirror-segmented,
+.anim-custom-item[data-selected="false"] .anim-mirror-segmented {
+    display: none;
+}
+
+.anim-mirror-segmented input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+}
+
+.anim-mirror-segmented label {
+    cursor: pointer;
+    border-radius: 999px;
+    padding: 0.2rem 0.45rem;
+    font-size: 0.74rem;
+    color: var(--text-alternate);
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.anim-mirror-segmented input[type="radio"]:checked + label {
+    background: var(--button-primary-bg);
+    color: var(--text-primary);
+}
+
+.anim-mirror-segmented label:hover {
+    background: color-mix(in srgb, var(--bg-tertiary) 80%, transparent);
+}
+
+@media (max-width: 980px) {
+    #animations-items {
+        width: 100%;
+    }
 }
 
 

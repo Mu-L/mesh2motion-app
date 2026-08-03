@@ -3,6 +3,7 @@ import { SkeletonType } from '../../enums/SkeletonType'
 import { RigConfig } from '../../RigConfig'
 import { type AnimationWithState } from './interfaces/AnimationWithState'
 import { type TransformedAnimationClipPair } from './interfaces/TransformedAnimationClipPair'
+import { type AnimationExportSelection, type AnimationMirrorExportMode } from './interfaces/AnimationExportSelection'
 
 export class AnimationSearch extends EventTarget {
   private all_animations: AnimationWithState[] = []
@@ -50,6 +51,7 @@ export class AnimationSearch extends EventTarget {
     return animations.map((pair) => {
       const animation_with_state = pair.display_animation_clip as unknown as AnimationWithState
       animation_with_state.isChecked = false
+      animation_with_state.mirror_export_mode = 'none'
       animation_with_state.metadata = pair.metadata // enhanced searching/display with custom animations
       return animation_with_state
     })
@@ -57,7 +59,7 @@ export class AnimationSearch extends EventTarget {
 
   private setup_event_listeners (): void {
     this.setup_filter_listener()
-    this.setup_checkbox_listeners()
+    this.setup_row_state_listeners()
     this.setup_theme_change_listener()
   }
 
@@ -84,31 +86,47 @@ export class AnimationSearch extends EventTarget {
     })
   }
 
-  private setup_checkbox_listeners (): void {
+  private setup_row_state_listeners (): void {
     if (this.animation_list_container === null) {
       return
     }
 
-    // Add event listener to the container for checkbox changes (event delegation)
+    // Add event listener to the container for checkbox/radio changes (event delegation)
     this.animation_list_container.addEventListener('change', (event) => {
       const target = event.target as HTMLInputElement
-      if (target?.type === 'checkbox') {
-        this.save_current_checkbox_states()
+      if (target?.type === 'checkbox' || this.is_mirror_mode_radio_input(target)) {
+        if (target?.type === 'checkbox') {
+          const row_element = target.closest('.anim-item, .anim-custom-item') as HTMLElement | null
+          if (row_element !== null) {
+            row_element.setAttribute('data-selected', target.checked ? 'true' : 'false')
+          }
+        }
+
+        this.save_current_row_states()
 
         // If in "selected only" mode, re-render to remove unchecked animations immediately
-        if (this.show_selected_only) {
+        if (this.show_selected_only && target?.type === 'checkbox') {
           const filter_text = this.filter_input?.value.toLowerCase() ?? ''
           this.render_filtered_animations(filter_text)
         }
       }
 
       // emit an event to notify other parts of the application that export options have changed
-      this.custom_event = new CustomEvent('export-options-changed', { detail: { selectedAnimations: this.get_selected_animation_indices() } })
+      this.custom_event = new CustomEvent('export-options-changed', {
+        detail: {
+          selectedAnimations: this.get_selected_animation_indices(),
+          exportAnimationCount: this.get_selected_export_animation_count()
+        }
+      })
       this.dispatchEvent(this.custom_event)
     })
   }
 
-  private save_current_checkbox_states (): void {
+  private is_mirror_mode_radio_input (target: HTMLInputElement | null): boolean {
+    return target?.type === 'radio' && target.name.startsWith('mirror-export-mode-')
+  }
+
+  private save_current_row_states (): void {
     if (this.animation_list_container === null) {
       return
     }
@@ -121,6 +139,23 @@ export class AnimationSearch extends EventTarget {
       if (!isNaN(animation_index) && animation_index < this.all_animations.length) {
         this.all_animations[animation_index].isChecked = input.checked
       }
+    })
+
+    const mirror_mode_radios = this.animation_list_container.querySelectorAll('input[type="radio"][name^="mirror-export-mode-"]')
+    mirror_mode_radios.forEach((radio) => {
+      const input = radio as HTMLInputElement
+      if (!input.checked) {
+        return
+      }
+
+      const animation_index_str = input.getAttribute('data-animation-index')
+      const animation_index = animation_index_str !== null ? parseInt(animation_index_str) : NaN
+      if (isNaN(animation_index) || animation_index < 0 || animation_index >= this.all_animations.length) {
+        return
+      }
+
+      const mode = input.value as AnimationMirrorExportMode
+      this.all_animations[animation_index].mirror_export_mode = mode
     })
   }
 
@@ -193,16 +228,31 @@ export class AnimationSearch extends EventTarget {
         ? '<span class="anim-custom-badge" title="Custom animation" aria-label="Custom animation">C</span>'
         : ''
 
+      const mirror_export_mode = animation_clip.mirror_export_mode ?? 'none'
       const animation_entry_html = `
-        <div class="${is_custom_animation ? 'anim-custom-item' : 'anim-item'}">
-          <button class="secondary-button play" data-index="${original_index}" style="display: flex; flex-direction:column; position: relative;">
+        <div class="${is_custom_animation ? 'anim-custom-item' : 'anim-item'}" data-animation-index="${original_index}" data-selected="${was_checked ? 'true' : 'false'}">
+          <button class="secondary-button play anim-play-button" data-action="play-animation" data-index="${original_index}" aria-label="Play ${this.animation_name_clean(animation_clip.name)}">
             ${custom_animation_badge_html}
-            <div class="anim-preview-placeholder"${preview_data_src_attribute} style="pointer-events: none;"></div>
-            <label class="styled-checkbox">
+            <div class="anim-preview-placeholder"${preview_data_src_attribute}></div>
+          </button>
+
+          <div class="anim-row-content">
+            <label class="styled-checkbox anim-row-checkbox">
               <input type="checkbox" name="${animation_clip.name}" value="${original_index}" ${checked_attribute}>
               <span class="anim-preview-label">${this.animation_name_clean(animation_clip.name)}</span>
             </label>
-          </button>
+
+            <fieldset class="anim-mirror-segmented" aria-label="Mirror export mode for ${this.animation_name_clean(animation_clip.name)}">
+              <input type="radio" id="anim-${original_index}-mirror-none" name="mirror-export-mode-${original_index}" value="none" data-animation-index="${original_index}" ${mirror_export_mode === 'none' ? 'checked' : ''}>
+              <label for="anim-${original_index}-mirror-none">None</label>
+
+              <input type="radio" id="anim-${original_index}-mirror-mirrored" name="mirror-export-mode-${original_index}" value="mirrored" data-animation-index="${original_index}" ${mirror_export_mode === 'mirrored' ? 'checked' : ''}>
+              <label for="anim-${original_index}-mirror-mirrored">Mirrored</label>
+
+              <input type="radio" id="anim-${original_index}-mirror-both" name="mirror-export-mode-${original_index}" value="both" data-animation-index="${original_index}" ${mirror_export_mode === 'both' ? 'checked' : ''}>
+              <label for="anim-${original_index}-mirror-both">Both</label>
+            </fieldset>
+          </div>
         </div>`
 
       // append the entire item HTML to the DOM element
@@ -243,8 +293,8 @@ export class AnimationSearch extends EventTarget {
         video.className = 'anim-preview'
         const src = placeholder.getAttribute('data-src') ?? ''
         video.src = src
-        video.width = 100
-        video.height = 120
+        video.width = 76
+        video.height = 56
         video.loop = true
         video.muted = true
         video.playsInline = true // tells mobile browsers to play inline instead of going fullscreen
@@ -281,6 +331,35 @@ export class AnimationSearch extends EventTarget {
       .filter(index => index !== -1)
   }
 
+  public get_selected_animation_export_selections (): AnimationExportSelection[] {
+    return this.all_animations
+      .map((animation, index) => {
+        if (animation.isChecked !== true) {
+          return null
+        }
+
+        return {
+          animation_index: index,
+          mirror_export_mode: animation.mirror_export_mode ?? 'none'
+        } as AnimationExportSelection
+      })
+      .filter((selection): selection is AnimationExportSelection => selection !== null)
+  }
+
+  public get_selected_export_animation_count (): number {
+    return this.all_animations.reduce((count, animation) => {
+      if (animation.isChecked !== true) {
+        return count
+      }
+
+      if (animation.mirror_export_mode === 'both') {
+        return count + 2
+      }
+
+      return count + 1
+    }, 0)
+  }
+
   public clear_filter (): void {
     if (this.filter_input !== null) {
       this.filter_input.value = ''
@@ -301,8 +380,8 @@ export class AnimationSearch extends EventTarget {
     // Update all checkboxes in the UI
     this.update_all_checkboxes_in_ui(new_state)
 
-    // Save the checkbox states to ensure they're synced with the UI
-    this.save_current_checkbox_states()
+    // Save row state to ensure inputs are synced with backing animation state
+    this.save_current_row_states()
 
     // If in "selected only" mode, re-render to update the displayed animations
     if (this.show_selected_only) {
@@ -311,7 +390,12 @@ export class AnimationSearch extends EventTarget {
     }
 
     // Emit event to notify that export options have changed
-    this.custom_event = new CustomEvent('export-options-changed', { detail: { selectedAnimations: this.get_selected_animation_indices() } })
+    this.custom_event = new CustomEvent('export-options-changed', {
+      detail: {
+        selectedAnimations: this.get_selected_animation_indices(),
+        exportAnimationCount: this.get_selected_export_animation_count()
+      }
+    })
     this.dispatchEvent(this.custom_event)
   }
 

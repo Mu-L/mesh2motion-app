@@ -15,6 +15,7 @@ import { Utility } from '../../Utilities.ts'
 import { type ThemeManager } from '../../ThemeManager.ts'
 import { AnimationSearch } from './AnimationSearch.ts'
 import { type AnimationClipMetadata, type TransformedAnimationClipPair } from './interfaces/TransformedAnimationClipPair.ts'
+import { type AnimationExportSelection } from './interfaces/AnimationExportSelection.ts'
 
 // Note: EventTarget is a built-ininterface and do not need to import it
 export class StepAnimationsListing extends EventTarget {
@@ -287,7 +288,7 @@ export class StepAnimationsListing extends EventTarget {
     this.animation_search?.addEventListener('export-options-changed', () => {
       // update the count for the download button
       if (this.ui.dom_animation_count != null) {
-        this.ui.dom_animation_count.innerHTML = this.animation_search?.get_selected_animation_indices().length.toString() ?? '0'
+        this.ui.dom_animation_count.innerHTML = this.animation_search?.get_selected_export_animation_count().toString() ?? '0'
       }
     })
 
@@ -429,8 +430,13 @@ export class StepAnimationsListing extends EventTarget {
       this.ui.dom_animation_clip_list.addEventListener('click', (event) => {
         this.update_download_button_enabled()
 
-        if ((event.target != null) && (event.target as HTMLElement).tagName === 'BUTTON') {
-          const animation_index_str = (event.target as HTMLElement).getAttribute('data-index')
+        if (event.target != null) {
+          const play_button = (event.target as HTMLElement).closest('button[data-action="play-animation"]')
+          if (play_button === null) {
+            return
+          }
+
+          const animation_index_str = play_button.getAttribute('data-index')
           if (animation_index_str != null) {
             const animation_index: number = Number(animation_index_str)
             this.play_animation(animation_index)
@@ -524,5 +530,13 @@ export class StepAnimationsListing extends EventTarget {
       return []
     }
     return this.animation_search.get_selected_animation_indices()
+  }
+
+  public get_animation_export_selections (): AnimationExportSelection[] {
+    if (this.animation_search === null) {
+      return []
+    }
+
+    return this.animation_search.get_selected_animation_export_selections()
   }
 }

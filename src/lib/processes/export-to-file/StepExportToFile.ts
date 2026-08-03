@@ -3,19 +3,54 @@ import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js'
 import { type AnimationClip, Scene, type SkinnedMesh, type Object3D } from 'three'
 import { type DownloadSettings, ExportContents } from './DownloadSettings.ts'
 import { ExportBoneNamingService } from './ExportBoneNamingService.ts'
+import { AnimationUtility } from '../animations-listing/AnimationUtility.ts'
+import { type AnimationExportSelection } from '../animations-listing/interfaces/AnimationExportSelection.ts'
 
 // Note: EventTarget is a built-in interface and do not need to import it
 export class StepExportToFile extends EventTarget {
   private readonly ui: UI = UI.getInstance()
   private animation_clips_to_export: AnimationClip[] = []
 
-  public set_animation_clips_to_export (all_animations_clips: AnimationClip[], animation_checkboxes: number[]): void {
+  public set_animation_clips_to_export (all_animations_clips: AnimationClip[], export_selections: AnimationExportSelection[]): void {
     this.animation_clips_to_export = []
-    animation_checkboxes.forEach((indx) => {
-      const original_clip: AnimationClip = all_animations_clips[indx]
-      const cloned_clip: AnimationClip = original_clip.clone()
-      this.animation_clips_to_export.push(cloned_clip)
+    export_selections.forEach((selection) => {
+      const source_clip: AnimationClip | undefined = all_animations_clips[selection.animation_index]
+      if (source_clip === undefined) {
+        return
+      }
+
+      if (selection.mirror_export_mode === 'none') {
+        this.animation_clips_to_export.push(source_clip.clone())
+        return
+      }
+
+      if (selection.mirror_export_mode === 'mirrored') {
+        this.animation_clips_to_export.push(this.create_mirrored_clip(source_clip))
+        return
+      }
+
+      // Export both normal and mirrored variants.
+      this.animation_clips_to_export.push(source_clip.clone())
+      this.animation_clips_to_export.push(this.create_mirrored_clip(source_clip))
     })
+  }
+
+  private create_mirrored_clip (source_clip: AnimationClip): AnimationClip {
+    const mirrored_clip = AnimationUtility.deep_clone_animation_clip(source_clip)
+    mirrored_clip.name = `${mirrored_clip.name}_mirror`
+
+    AnimationUtility.apply_animation_mirroring([
+      {
+        original_animation_clip: AnimationUtility.deep_clone_animation_clip(mirrored_clip),
+        display_animation_clip: mirrored_clip,
+        metadata: {
+          source_type: 'default-library',
+          tags: []
+        }
+      }
+    ])
+
+    return mirrored_clip
   }
 
   public export (
