@@ -1,5 +1,6 @@
 import { FBXTree } from './FBXTree'
 import { append, parseNumberArray } from './fbx-utils'
+import { type FBXNode } from './BinaryParser'
 
 /**
  * Parses an FBX file stored in ASCII (text) format.
@@ -7,52 +8,52 @@ import { append, parseNumberArray } from './fbx-utils'
  * hierarchy, returning an `FBXTree` that mirrors the document structure.
  */
 class TextParser {
-    nodeStack: any;
+    nodeStack!: FBXNode[];
     currentIndent: number = 0;
-    currentProp: any;
+    currentProp!: FBXNode | unknown[];
     currentPropName: string | undefined
     allNodes: FBXTree = new FBXTree();
 
-    getPrevNode () {
+    getPrevNode (): FBXNode {
 
         return this.nodeStack[this.currentIndent - 2];
 
     }
 
-    getCurrentNode () {
+    getCurrentNode (): FBXNode {
 
         return this.nodeStack[this.currentIndent - 1];
 
     }
 
-    getCurrentProp () {
+    getCurrentProp (): FBXNode | unknown[] {
 
         return this.currentProp;
 
     }
 
-    pushStack (node: any) {
+    pushStack (node: FBXNode): void {
 
         this.nodeStack.push(node);
         this.currentIndent += 1;
 
     }
 
-    popStack () {
+    popStack (): void {
 
         this.nodeStack.pop();
         this.currentIndent -= 1;
 
     }
 
-    setCurrentProp (val: any, name: string | undefined) {
+    setCurrentProp (val: FBXNode | unknown[], name: string | undefined): void {
 
         this.currentProp = val;
         this.currentPropName = name;
 
     }
 
-    parse (text: string) {
+    parse (text: string): FBXTree {
 
         this.currentIndent = 0;
 
@@ -102,7 +103,7 @@ class TextParser {
 
     }
 
-    parseNodeBegin (_line: string, property: string[]) {
+    parseNodeBegin (_line: string, property: string[]): void {
 
         const nodeName = property[1].trim().replace(/^"/, '').replace(/"$/, '');
 
@@ -163,9 +164,9 @@ class TextParser {
 
     }
 
-    parseNodeAttr (attrs: any) {
+    parseNodeAttr (attrs: string[]): { id: number | string; name: string; type: string } {
 
-        let id = attrs[0];
+        let id: number | string = attrs[0];
 
         if (attrs[0] !== '') {
 
@@ -192,9 +193,9 @@ class TextParser {
 
     }
 
-    parseNodeProperty (line: string, property: string[], contentLine: string) {
+    parseNodeProperty (line: string, property: string[], contentLine: string): void {
 
-        let propName: any = property[1].replace(/^"/, '').replace(/"$/, '').trim();
+        let propName: string = property[1].replace(/^"/, '').replace(/"$/, '').trim();
         let propValue: any = property[2].replace(/^"/, '').replace(/"$/, '').trim();
 
         // for special case: base64 image data follows "Content: ," line
@@ -269,7 +270,7 @@ class TextParser {
 
     }
 
-    parseNodePropertyContinued (line: string) {
+    parseNodePropertyContinued (line: string): void {
 
         const currentNode = this.getCurrentNode();
 
@@ -286,7 +287,7 @@ class TextParser {
     }
 
     // parse "Property70"
-    parseNodeSpecialProperty (line: string, propName: string, propValue: any) {
+    parseNodeSpecialProperty (line: string, propName: string, propValue: string): void {
 
         // split this
         // P: "Lcl Scaling", "Lcl Scaling", "", "A",1,1,1

@@ -10,6 +10,7 @@ import {
     Line,
     LineBasicMaterial,
     Loader,
+    LoadingManager,
     MathUtils,
     Matrix4,
     Mesh,
@@ -21,14 +22,15 @@ import {
     PropertyBinding,
     Quaternion,
     RepeatWrapping,
-    SRGBColorSpace,
     Skeleton,
     SkinnedMesh,
     SpotLight,
+    SRGBColorSpace,
     Texture,
+    TextureLoader,
     Vector3
 } from 'three'
-import { fbxGlobals } from './fbx-globals'
+import { fbxGlobals, type FBXConnectionEntry } from './fbx-globals'
 import { GeometryParser } from './GeometryParser'
 import { AnimationParser } from './AnimationParser'
 import { generateTransform, getEulerOrder } from './fbx-utils'
@@ -39,16 +41,16 @@ import { generateTransform, getEulerOrder } from './fbx-utils'
  * cameras, meshes, skeletons, morph targets, and wiring up animations.
  */
 class FBXTreeParser {
-    textureLoader: any;
-    manager: any;
+    textureLoader: TextureLoader;
+    manager: LoadingManager;
 
-    constructor (textureLoader: any, manager: any) {
+    constructor (textureLoader: TextureLoader, manager: LoadingManager) {
         this.textureLoader = textureLoader;
         this.manager = manager;
 
     }
 
-    parse () {
+    parse (): Group {
 
         fbxGlobals.connections = this.parseConnections();
 
@@ -66,7 +68,7 @@ class FBXTreeParser {
 
     // Parses FBXTree.Connections which holds parent-child connections between objects (e.g. material -> texture, model->geometry )
     // and details the connection type
-    parseConnections () {
+    parseConnections (): Map<number, FBXConnectionEntry> {
 
         const connectionMap = new Map();
 
@@ -115,7 +117,7 @@ class FBXTreeParser {
     // Parse FBXTree.Objects.Video for embedded image data
     // These images are connected to textures in FBXTree.Objects.Textures
     // via FBXTree.Connections.
-    parseImages () {
+    parseImages (): Record<number, string> {
 
         const images: any = {};
         const blobs: any = {};
@@ -166,7 +168,7 @@ class FBXTreeParser {
     }
 
     // Parse embedded image data in FBXTree.Video.Content
-    parseImage (videoNode: any) {
+    parseImage (videoNode: any): string | undefined {
 
         const content = videoNode.Content;
         const fileName = videoNode.RelativeFilename || videoNode.Filename;
@@ -236,7 +238,7 @@ class FBXTreeParser {
     // Parse nodes in FBXTree.Objects.Texture
     // These contain details such as UV scaling, cropping, rotation etc and are connected
     // to images in FBXTree.Objects.Video
-    parseTextures (images: any) {
+    parseTextures (images: Record<number, string>): Map<number, Texture> {
 
         const textureMap = new Map();
 
@@ -257,11 +259,11 @@ class FBXTreeParser {
     }
 
     // Parse individual node in FBXTree.Objects.Texture
-    parseTexture (textureNode: any, images: any) {
+    parseTexture (textureNode: any, images: Record<number, string>): Texture {
 
         const texture = this.loadTexture(textureNode, images);
 
-        texture.ID = textureNode.id;
+        (texture as any).ID = textureNode.id;
 
         texture.name = textureNode.attrName;
 
@@ -300,7 +302,7 @@ class FBXTreeParser {
     }
 
     // load a texture specified as a blob or data URI, or via an external URL using TextureLoader
-    loadTexture (textureNode: any, images: any) {
+    loadTexture (textureNode: any, images: Record<number, string>): Texture {
 
         const extension = textureNode.FileName.split('.').pop().toLowerCase();
 
@@ -315,7 +317,7 @@ class FBXTreeParser {
 
         }
 
-        const children = fbxGlobals.connections.get(textureNode.id).children;
+        const children = fbxGlobals.connections.get(textureNode.id)!.children;
 
         let fileName;
 
@@ -325,7 +327,7 @@ class FBXTreeParser {
 
             if (fileName.indexOf('blob:') === 0 || fileName.indexOf('data:') === 0) {
 
-                loader.setPath(undefined);
+                loader.setPath(undefined as unknown as string);
 
             }
 
@@ -338,17 +340,17 @@ class FBXTreeParser {
 
         }
 
-        const texture = loader.load(fileName);
+        const texture = (loader as TextureLoader).load(fileName);
 
         // revert to initial path
-        loader.setPath(loaderPath);
+        loader.setPath(loaderPath as string);
 
         return texture;
 
     }
 
     // Parse nodes in FBXTree.Objects.Material
-    parseMaterials (textureMap: any) {
+    parseMaterials (textureMap: Map<number, Texture>): Map<number, MeshPhongMaterial | MeshLambertMaterial> {
 
         const materialMap = new Map();
 
@@ -373,7 +375,7 @@ class FBXTreeParser {
     // Parse single node in FBXTree.Objects.Material
     // Materials are connected to texture maps in FBXTree.Objects.Textures
     // FBX format currently only supports Lambert and Phong shading models
-    parseMaterial (materialNode: any, textureMap: any) {
+    parseMaterial (materialNode: any, textureMap: Map<number, Texture>): MeshPhongMaterial | MeshLambertMaterial | null {
 
         const ID = materialNode.id;
         const name = materialNode.attrName;
@@ -417,7 +419,7 @@ class FBXTreeParser {
 
     // Parse FBX material and return parameters suitable for a three.js material
     // Also parse the texture map and return any textures associated with the material
-    parseParameters (materialNode: any, textureMap: any, ID: any) {
+    parseParameters (materialNode: any, textureMap: Map<number, Texture>, ID: number): Record<string, unknown> {
 
         const parameters: any = {};
 
@@ -511,7 +513,7 @@ class FBXTreeParser {
         }
 
         const scope = this;
-        fbxGlobals.connections.get(ID).children.forEach(function (child: any) {
+        fbxGlobals.connections.get(ID)!.children.forEach(function (child: any) {
 
             const type = child.relationship;
 
@@ -599,13 +601,13 @@ class FBXTreeParser {
     }
 
     // get a texture from the textureMap for use by a material.
-    getTexture (textureMap: any, id: any) {
+    getTexture (textureMap: Map<number, Texture>, id: number): Texture | undefined {
 
         // if the texture is a layered texture, just use the first layer and issue a warning
         if ('LayeredTexture' in fbxGlobals.fbxTree.Objects && id in fbxGlobals.fbxTree.Objects.LayeredTexture) {
 
             console.warn('THREE.FBXLoader: layered textures are not supported in three.js. Discarding all but first layer.');
-            id = fbxGlobals.connections.get(id).children[0].ID;
+            id = fbxGlobals.connections.get(id)!.children[0].ID;
 
         }
 
@@ -616,7 +618,7 @@ class FBXTreeParser {
     // Parse nodes in FBXTree.Objects.Deformer
     // Deformer node can contain skinning or Vertex Cache animation data, however only skinning is supported here
     // Generates map of Skeleton-like objects for use later when generating and binding skeletons.
-    parseDeformers () {
+    parseDeformers (): { skeletons: Record<string, any>; morphTargets: Record<string, any> } {
 
         const skeletons: any = {};
         const morphTargets: any = {};
@@ -629,7 +631,7 @@ class FBXTreeParser {
 
                 const deformerNode = DeformerNodes[nodeID];
 
-                const relationships = fbxGlobals.connections.get(parseInt(nodeID));
+                const relationships = fbxGlobals.connections.get(parseInt(nodeID))!;
 
                 if (deformerNode.attrType === 'Skin') {
 
@@ -672,7 +674,7 @@ class FBXTreeParser {
     // Parse single nodes in FBXTree.Objects.Deformer
     // The top level skeleton node has type 'Skin' and sub nodes have type 'Cluster'
     // Each skin node represents a skeleton and each cluster node represents a bone
-    parseSkeleton (relationships: any, deformerNodes: any) {
+    parseSkeleton (relationships: any, deformerNodes: any): { rawBones: any[]; bones: Bone[] } {
 
         const rawBones: any[] = [];
 
@@ -712,7 +714,7 @@ class FBXTreeParser {
     }
 
     // The top level morph deformer node has type "BlendShape" and sub nodes have type "BlendShapeChannel"
-    parseMorphTargets (relationships: any, deformerNodes: any) {
+    parseMorphTargets (relationships: any, deformerNodes: any): any[] {
 
         const rawMorphTargets: any[] = [];
 
@@ -731,9 +733,9 @@ class FBXTreeParser {
 
             };
 
-            if (morphTargetNode.attrType !== 'BlendShapeChannel') return;
+            if (morphTargetNode.attrType !== 'BlendShapeChannel') return rawMorphTargets;
 
-            rawMorphTarget.geoID = fbxGlobals.connections.get(parseInt(child.ID)).children.filter(function (child: any) {
+            rawMorphTarget.geoID = fbxGlobals.connections.get(parseInt(child.ID))!.children.filter(function (child: any) {
 
                 return child.relationship === undefined;
 
@@ -748,7 +750,7 @@ class FBXTreeParser {
     }
 
     // create the main Group() to be returned by the loader
-    parseScene (deformers: any, geometryMap: any, materialMap: any) {
+    parseScene (deformers: any, geometryMap: any, materialMap: any): void {
 
         fbxGlobals.sceneGraph = new Group();
 
@@ -762,7 +764,7 @@ class FBXTreeParser {
             const modelNode = modelNodes[model.ID];
             scope.setLookAtProperties(model, modelNode);
 
-            const parentConnections = fbxGlobals.connections.get(model.ID).parents;
+            const parentConnections = fbxGlobals.connections.get(model.ID)!.parents;
 
             parentConnections.forEach(function (connection: any) {
 
@@ -863,7 +865,7 @@ class FBXTreeParser {
         const animations = new AnimationParser().parse();
 
         // if all the models where already combined in a single group, just return that
-        if (fbxGlobals.sceneGraph.children.length === 1 && fbxGlobals.sceneGraph.children[0].isGroup) {
+        if (fbxGlobals.sceneGraph.children.length === 1 && fbxGlobals.sceneGraph.children[0] instanceof Group) {
 
             fbxGlobals.sceneGraph.children[0].animations = animations;
             fbxGlobals.sceneGraph = fbxGlobals.sceneGraph.children[0];
@@ -893,7 +895,7 @@ class FBXTreeParser {
     }
 
     // parse nodes in FBXTree.Objects.Model
-    parseModels (skeletons: any, geometryMap: any, materialMap: any) {
+    parseModels (skeletons: any, geometryMap: any, materialMap: any): Map<number, Object3D> {
 
         const modelMap = new Map();
         const modelNodes = fbxGlobals.fbxTree.Objects.Model;
@@ -949,7 +951,7 @@ class FBXTreeParser {
 
     }
 
-    buildSkeleton (relationships: any, skeletons: any, id: any, name: any) {
+    buildSkeleton (relationships: any, skeletons: any, id: number, name: any): Bone | null {
 
         let bone: any = null;
 
@@ -997,7 +999,7 @@ class FBXTreeParser {
     }
 
     // create a PerspectiveCamera or OrthographicCamera
-    createCamera (relationships: any) {
+    createCamera (relationships: any): Object3D {
 
         let model: any;
         let cameraAttribute: any;
@@ -1089,7 +1091,7 @@ class FBXTreeParser {
     }
 
     // Create a DirectionalLight, PointLight or SpotLight
-    createLight (relationships: any) {
+    createLight (relationships: any): Object3D {
 
         let model: any;
         let lightAttribute: any;
@@ -1215,7 +1217,7 @@ class FBXTreeParser {
 
     }
 
-    createMesh (relationships: any, geometryMap: any, materialMap: any) {
+    createMesh (relationships: any, geometryMap: any, materialMap: any): Mesh | SkinnedMesh {
 
         let model: any;
         let geometry: any = null;
@@ -1311,7 +1313,7 @@ class FBXTreeParser {
 
     }
 
-    createCurve (relationships: any, geometryMap: any) {
+    createCurve (relationships: any, geometryMap: any): Line {
 
         const geometry = relationships.children.reduce(function (geo: any, child: any) {
 
@@ -1332,7 +1334,7 @@ class FBXTreeParser {
     }
 
     // parse the model node for transform data
-    getTransformData (model: any, modelNode: any) {
+    getTransformData (model: any, modelNode: any): void {
 
         const transformData: any = {};
 
@@ -1359,11 +1361,11 @@ class FBXTreeParser {
 
     }
 
-    setLookAtProperties (model: any, modelNode: any) {
+    setLookAtProperties (model: any, modelNode: any): void {
 
         if ('LookAtProperty' in modelNode) {
 
-            const children = fbxGlobals.connections.get(model.ID).children;
+            const children = fbxGlobals.connections.get(model.ID)!.children;
 
             children.forEach(function (child: any) {
 
@@ -1397,7 +1399,7 @@ class FBXTreeParser {
 
     }
 
-    bindSkeleton (skeletons: any, geometryMap: any, modelMap: any) {
+    bindSkeleton (skeletons: any, geometryMap: any, modelMap: any): void {
 
         for (const ID in skeletons) {
 
@@ -1423,14 +1425,14 @@ class FBXTreeParser {
 
             }
 
-            const parents = fbxGlobals.connections.get(parseInt(skeleton.ID)).parents;
+            const parents = fbxGlobals.connections.get(parseInt(skeleton.ID))!.parents;
 
             parents.forEach(function (parent: any) {
 
                 if (geometryMap.has(parent.ID)) {
 
                     const geoID = parent.ID;
-                    const geoRelationships = fbxGlobals.connections.get(geoID);
+                    const geoRelationships = fbxGlobals.connections.get(geoID)!
 
                     geoRelationships.parents.forEach(function (geoConnParent: any) {
 
@@ -1500,7 +1502,7 @@ class FBXTreeParser {
 
     }
 
-    addGlobalSceneSettings () {
+    addGlobalSceneSettings (): void {
 
         if ('GlobalSettings' in fbxGlobals.fbxTree) {
 

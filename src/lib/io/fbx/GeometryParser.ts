@@ -4,6 +4,7 @@ import {
     ColorManagement,
     Float32BufferAttribute,
     Matrix3,
+    Matrix4,
     ShapeUtils,
     SRGBColorSpace,
     Uint16BufferAttribute,
@@ -13,7 +14,7 @@ import {
 } from 'three'
 import { NURBSCurve } from 'three/addons/curves/NURBSCurve.js'
 import { fbxGlobals } from './fbx-globals'
-import { generateTransform, getEulerOrder, getData } from './fbx-utils'
+import { generateTransform, getEulerOrder, getData, type FBXAttributeInfo } from './fbx-utils'
 
 /**
  * Converts geometry nodes from the `FBXTree` into Three.js `BufferGeometry` objects.
@@ -31,7 +32,7 @@ class GeometryParser {
     }
 
     // Parse nodes in FBXTree.Objects.Geometry
-    parse (deformers: any) {
+    parse (deformers: any): Map<number, BufferGeometry | undefined> {
 
         const geometryMap = new Map();
 
@@ -63,7 +64,7 @@ class GeometryParser {
     }
 
     // Parse single node in FBXTree.Objects.Geometry
-    parseGeometry (relationships: any, geoNode: any, deformers: any) {
+    parseGeometry (relationships: any, geoNode: any, deformers: any): BufferGeometry | undefined {
 
         switch (geoNode.attrType) {
 
@@ -78,7 +79,7 @@ class GeometryParser {
     }
 
     // Parse single node mesh geometry in FBXTree.Objects.Geometry
-    parseMeshGeometry (relationships: any, geoNode: any, deformers: any) {
+    parseMeshGeometry (relationships: any, geoNode: any, deformers: any): BufferGeometry | undefined {
 
         const skeletons = deformers.skeletons;
         const morphTargets: any[] = [];
@@ -130,7 +131,7 @@ class GeometryParser {
     }
 
     // Generate a BufferGeometry from a node in FBXTree.Objects.Geometry
-    genGeometry (geoNode: any, skeleton: any, morphTargets: any[], preTransform: any) {
+    genGeometry (geoNode: any, skeleton: any, morphTargets: any[], preTransform: Matrix4): BufferGeometry {
 
         const geo: BufferGeometry = new BufferGeometry();
         if (geoNode.attrName) geo.name = geoNode.attrName;
@@ -474,7 +475,7 @@ class GeometryParser {
 
             if (endOfFace) {
 
-                scope.genFace(buffers, geoInfo, facePositionIndexes, materialIndex, faceNormals, faceColors, faceUVs, faceWeights, faceWeightIndices, faceLength);
+                scope.genFace(buffers, geoInfo, facePositionIndexes, materialIndex ?? 0, faceNormals, faceColors, faceUVs, faceWeights, faceWeightIndices, faceLength);
 
                 polygonIndex++;
                 faceLength = 0;
@@ -496,7 +497,7 @@ class GeometryParser {
     }
 
     // See https://www.khronos.org/opengl/wiki/Calculating_a_Surface_Normal
-    getNormalNewell (vertices: Vector3[]) {
+    getNormalNewell (vertices: Vector3[]): Vector3 {
 
         const normal = new Vector3(0.0, 0.0, 0.0);
 
@@ -517,7 +518,7 @@ class GeometryParser {
 
     }
 
-    getNormalTangentAndBitangent (vertices: Vector3[]) {
+    getNormalTangentAndBitangent (vertices: Vector3[]): { normal: Vector3; tangent: Vector3; bitangent: Vector3 } {
 
         const normalVector = this.getNormalNewell(vertices);
         // Avoid up being equal or almost equal to normalVector
@@ -533,7 +534,7 @@ class GeometryParser {
 
     }
 
-    flattenVertex (vertex: Vector3, normalTangent: Vector3, normalBitangent: Vector3) {
+    flattenVertex (vertex: Vector3, normalTangent: Vector3, normalBitangent: Vector3): Vector2 {
 
         return new Vector2(
             vertex.dot(normalTangent),
@@ -781,7 +782,7 @@ class GeometryParser {
     }
 
     // Parse normal from FBXTree.Objects.Geometry.LayerElementNormal if it exists
-    parseNormals (NormalNode: any) {
+    parseNormals (NormalNode: any): FBXAttributeInfo {
 
         const mappingType = NormalNode.MappingInformationType;
         const referenceType = NormalNode.ReferenceInformationType;
@@ -812,7 +813,7 @@ class GeometryParser {
     }
 
     // Parse UVs from FBXTree.Objects.Geometry.LayerElementUV if it exists
-    parseUVs (UVNode: any) {
+    parseUVs (UVNode: any): FBXAttributeInfo {
 
         const mappingType = UVNode.MappingInformationType;
         const referenceType = UVNode.ReferenceInformationType;
@@ -835,7 +836,7 @@ class GeometryParser {
     }
 
     // Parse Vertex Colors from FBXTree.Objects.Geometry.LayerElementColor if it exists
-    parseVertexColors (ColorNode: any) {
+    parseVertexColors (ColorNode: any): FBXAttributeInfo {
 
         const mappingType = ColorNode.MappingInformationType;
         const referenceType = ColorNode.ReferenceInformationType;
@@ -866,7 +867,7 @@ class GeometryParser {
     }
 
     // Parse mapping and material data in FBXTree.Objects.Geometry.LayerElementMaterial if it exists
-    parseMaterialIndices (MaterialNode: any) {
+    parseMaterialIndices (MaterialNode: any): FBXAttributeInfo {
 
         const mappingType = MaterialNode.MappingInformationType;
         const referenceType = MaterialNode.ReferenceInformationType;
@@ -907,7 +908,7 @@ class GeometryParser {
     }
 
     // Generate a NurbGeometry from a node in FBXTree.Objects.Geometry
-    parseNurbsGeometry (geoNode: any) {
+    parseNurbsGeometry (geoNode: any): BufferGeometry {
 
         const order = parseInt(geoNode.Order);
 

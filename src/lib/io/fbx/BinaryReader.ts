@@ -3,12 +3,12 @@
  * Wraps a `DataView` and advances an internal byte offset as typed values are read.
  */
 class BinaryReader {
-    dv: DataView<any>;
+    dv: DataView;
     offset: number;
-    littleEndian: any;
+    littleEndian: boolean;
     _textDecoder: TextDecoder;
 
-    constructor (buffer: any, littleEndian?: any) {
+    constructor (buffer: ArrayBuffer, littleEndian?: boolean) {
 
         this.dv = new DataView(buffer);
         this.offset = 0;
@@ -17,19 +17,19 @@ class BinaryReader {
 
     }
 
-    getOffset () {
+    getOffset (): number {
 
         return this.offset;
 
     }
 
-    size () {
+    size (): number {
 
         return this.dv.buffer.byteLength;
 
     }
 
-    skip (length: number) {
+    skip (length: number): void {
 
         this.offset += length;
 
@@ -38,13 +38,13 @@ class BinaryReader {
     // seems like true/false representation depends on exporter.
     // true: 1 or 'Y'(=0x59), false: 0 or 'T'(=0x54)
     // then sees LSB.
-    getBoolean () {
+    getBoolean (): boolean {
 
         return (this.getUint8() & 1) === 1;
 
     }
 
-    getBooleanArray (size: number) {
+    getBooleanArray (size: number): boolean[] {
 
         const a: boolean[] = [];
 
@@ -58,7 +58,7 @@ class BinaryReader {
 
     }
 
-    getUint8 () {
+    getUint8 (): number {
 
         const value = this.dv.getUint8(this.offset);
         this.offset += 1;
@@ -66,7 +66,7 @@ class BinaryReader {
 
     }
 
-    getInt16 () {
+    getInt16 (): number {
 
         const value = this.dv.getInt16(this.offset, this.littleEndian);
         this.offset += 2;
@@ -74,7 +74,7 @@ class BinaryReader {
 
     }
 
-    getInt32 () {
+    getInt32 (): number {
 
         const value = this.dv.getInt32(this.offset, this.littleEndian);
         this.offset += 4;
@@ -82,7 +82,7 @@ class BinaryReader {
 
     }
 
-    getInt32Array (size: number) {
+    getInt32Array (size: number): number[] {
 
         const a: number[] = [];
 
@@ -96,7 +96,7 @@ class BinaryReader {
 
     }
 
-    getUint32 () {
+    getUint32 (): number {
 
         const value = this.dv.getUint32(this.offset, this.littleEndian);
         this.offset += 4;
@@ -109,7 +109,7 @@ class BinaryReader {
     // There's a possibility that this method returns wrong value if the value
     // is out of the range between Number.MAX_SAFE_INTEGER and Number.MIN_SAFE_INTEGER.
     // TODO: safely handle 64-bit integer
-    getInt64 () {
+    getInt64 (): number {
 
         let low, high;
 
@@ -143,9 +143,9 @@ class BinaryReader {
 
     }
 
-    getInt64Array (size: number) {
+    getInt64Array (size: number): number[] {
 
-        const a = [];
+        const a: number[] = [];
 
         for (let i = 0; i < size; i++) {
 
@@ -158,7 +158,7 @@ class BinaryReader {
     }
 
     // Note: see getInt64() comment
-    getUint64 () {
+    getUint64 (): number {
 
         let low, high;
 
@@ -178,7 +178,7 @@ class BinaryReader {
 
     }
 
-    getFloat32 () {
+    getFloat32 (): number {
 
         const value = this.dv.getFloat32(this.offset, this.littleEndian);
         this.offset += 4;
@@ -186,7 +186,7 @@ class BinaryReader {
 
     }
 
-    getFloat32Array (size: number) {
+    getFloat32Array (size: number): number[] {
 
         const a: number[] = [];
 
@@ -200,7 +200,7 @@ class BinaryReader {
 
     }
 
-    getFloat64 () {
+    getFloat64 (): number {
 
         const value = this.dv.getFloat64(this.offset, this.littleEndian);
         this.offset += 8;
@@ -208,7 +208,7 @@ class BinaryReader {
 
     }
 
-    getFloat64Array (size: number) {
+    getFloat64Array (size: number): number[] {
 
         const a: number[] = [];
 
@@ -222,15 +222,15 @@ class BinaryReader {
 
     }
 
-    getArrayBuffer (size: number) {
+    getArrayBuffer (size: number): ArrayBuffer {
 
-        const value = this.dv.buffer.slice(this.offset, this.offset + size);
+        const value = this.dv.buffer.slice(this.offset, this.offset + size) as ArrayBuffer;
         this.offset += size;
         return value;
 
     }
 
-    getString (size: number) {
+    getString (size: number): string {
 
         const start = this.offset;
         let a = new Uint8Array(this.dv.buffer, start, size);

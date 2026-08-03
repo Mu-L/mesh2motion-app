@@ -6,7 +6,7 @@
 class FBXTree {
     [key: string]: any
 
-    add (key: string, val: any) {
+    add (key: string, val: unknown): void {
 
         this[key] = val;
 

@@ -1,7 +1,33 @@
-import { Euler, MathUtils, Matrix4, Vector3 } from 'three'
+import { Euler, type EulerOrder, MathUtils, Matrix4, Vector3 } from 'three'
+
+/** FBX transform pipeline properties used by generateTransform. */
+interface FBXTransformData {
+    translation?: number[]
+    preRotation?: number[]
+    rotation?: number[]
+    postRotation?: number[]
+    scale?: number[]
+    scalingOffset?: number[]
+    scalingPivot?: number[]
+    rotationOffset?: number[]
+    rotationPivot?: number[]
+    parentMatrix?: Matrix4
+    parentMatrixWorld?: Matrix4
+    inheritType?: number
+    eulerOrder?: EulerOrder
+}
+
+/** Describes a per-vertex attribute array as stored in FBX layer elements. */
+interface FBXAttributeInfo {
+    mappingType: string
+    referenceType: string
+    buffer: ArrayLike<number>
+    indices: number[]
+    dataSize: number
+}
 
 /** Returns true when the buffer starts with the FBX binary magic string. */
-function isFbxFormatBinary (buffer: ArrayBuffer) {
+function isFbxFormatBinary (buffer: ArrayBuffer): boolean {
 
     const CORRECT = 'Kaydara\u0020FBX\u0020Binary\u0020\u0020\0';
 
@@ -10,7 +36,7 @@ function isFbxFormatBinary (buffer: ArrayBuffer) {
 }
 
 /** Returns true when the text does NOT contain the binary magic prefix, indicating ASCII format. */
-function isFbxFormatASCII (text: string) {
+function isFbxFormatASCII (text: string): boolean {
 
     const CORRECT = ['K', 'a', 'y', 'd', 'a', 'r', 'a', '\\', 'F', 'B', 'X', '\\', 'B', 'i', 'n', 'a', 'r', 'y', '\\', '\\'];
 
@@ -41,7 +67,7 @@ function isFbxFormatASCII (text: string) {
 }
 
 /** Extracts the numeric FBX version from the `FBXVersion` header line. Throws if not found. */
-function getFbxVersion (text: string) {
+function getFbxVersion (text: string): number {
 
     const versionRegExp = /FBXVersion: (\d+)/;
     const match = text.match(versionRegExp);
@@ -58,14 +84,14 @@ function getFbxVersion (text: string) {
 }
 
 /** Converts an FBX time value (ticks at 46,186,158,000 per second) to seconds. */
-function convertFBXTimeToSeconds (time: number) {
+function convertFBXTimeToSeconds (time: number): number {
 
     return time / 46186158000;
 
 }
 
 /** Module-level scratch buffer reused by `getData` to avoid allocations per vertex. */
-const dataArray: any[] = [];
+const dataArray: number[] = [];
 
 /**
  * Reads one element from an FBX attribute array (normals, UVs, colours, etc.) at the
@@ -73,7 +99,7 @@ const dataArray: any[] = [];
  * FBX stores per-vertex data in several ways (ByPolygonVertex, ByPolygon, ByVertice,
  * AllSame) and this function resolves all of them to a single flat index.
  */
-function getData (polygonVertexIndex: number, polygonIndex: number, vertexIndex: number, infoObject: any) {
+function getData (polygonVertexIndex: number, polygonIndex: number, vertexIndex: number, infoObject: FBXAttributeInfo): number[] {
 
     let index;
 
@@ -96,9 +122,9 @@ function getData (polygonVertexIndex: number, polygonIndex: number, vertexIndex:
 
     }
 
-    if (infoObject.referenceType === 'IndexToDirect') index = infoObject.indices[index];
+    if (infoObject.referenceType === 'IndexToDirect') index = infoObject.indices[index!];
 
-    const from = index * infoObject.dataSize;
+    const from = (index ?? 0) * infoObject.dataSize;
     const to = from + infoObject.dataSize;
 
     return slice(dataArray, infoObject.buffer, from, to);
@@ -115,7 +141,7 @@ const tempVec = new Vector3();
  * algorithm described in the FBX SDK documentation.
  * @see https://help.autodesk.com/view/FBX/2017/ENU/?guid=__files_GUID_10CDD63C_79C1_4F2D_BB28_AD2BE65A02ED_htm
  */
-function generateTransform (transformData: any) {
+function generateTransform (transformData: FBXTransformData): Matrix4 {
 
     const lTranslationM = new Matrix4();
     const lPreRotationM = new Matrix4();
@@ -141,25 +167,22 @@ function generateTransform (transformData: any) {
 
     if (transformData.preRotation) {
 
-        const array = transformData.preRotation.map(MathUtils.degToRad);
-        array.push(defaultEulerOrder);
-        lPreRotationM.makeRotationFromEuler(tempEuler.fromArray(array));
+        const r = transformData.preRotation.map(MathUtils.degToRad);
+        lPreRotationM.makeRotationFromEuler(tempEuler.set(r[0], r[1], r[2], defaultEulerOrder));
 
     }
 
     if (transformData.rotation) {
 
-        const array = transformData.rotation.map(MathUtils.degToRad);
-        array.push(transformData.eulerOrder || defaultEulerOrder);
-        lRotationM.makeRotationFromEuler(tempEuler.fromArray(array));
+        const r = transformData.rotation.map(MathUtils.degToRad);
+        lRotationM.makeRotationFromEuler(tempEuler.set(r[0], r[1], r[2], transformData.eulerOrder || defaultEulerOrder));
 
     }
 
     if (transformData.postRotation) {
 
-        const array = transformData.postRotation.map(MathUtils.degToRad);
-        array.push(defaultEulerOrder);
-        lPostRotationM.makeRotationFromEuler(tempEuler.fromArray(array));
+        const r = transformData.postRotation.map(MathUtils.degToRad);
+        lPostRotationM.makeRotationFromEuler(tempEuler.set(r[0], r[1], r[2], defaultEulerOrder));
         lPostRotationM.invert();
 
     }
@@ -175,7 +198,7 @@ function generateTransform (transformData: any) {
     // parent transform
     if (transformData.parentMatrixWorld) {
 
-        lParentLX.copy(transformData.parentMatrix);
+        lParentLX.copy(transformData.parentMatrix!);
         lParentGX.copy(transformData.parentMatrixWorld);
 
     }
@@ -237,11 +260,11 @@ function generateTransform (transformData: any) {
  * intrinsic order string. Needed because FBX and Three.js use opposite conventions.
  * @see http://help.autodesk.com/view/FBX/2017/ENU/?guid=__cpp_ref_class_fbx_euler_html
  */
-function getEulerOrder (order: any) {
+function getEulerOrder (order: number): EulerOrder {
 
     order = order || 0;
 
-    const enums = [
+    const enums: EulerOrder[] = [
         'ZYX', // -> XYZ extrinsic
         'YZX', // -> XZY extrinsic
         'XZY', // -> YZX extrinsic
@@ -276,7 +299,7 @@ function parseNumberArray (value: string): number[] {
 }
 
 /** Decodes a byte range of an `ArrayBuffer` to a UTF-8 string. Used to read the FBX ASCII header and magic bytes. */
-function convertArrayBufferToString (buffer: ArrayBuffer, from?: number, to?: number) {
+function convertArrayBufferToString (buffer: ArrayBuffer, from?: number, to?: number): string {
 
     if (from === undefined) from = 0;
     if (to === undefined) to = buffer.byteLength;
@@ -286,7 +309,7 @@ function convertArrayBufferToString (buffer: ArrayBuffer, from?: number, to?: nu
 }
 
 /** Appends all elements of `b` onto `a` in-place, avoiding the allocation overhead of `concat`. */
-function append (a: any[], b: any[]) {
+function append (a: unknown[], b: unknown[]): void {
 
     for (let i = 0, j = a.length, l = b.length; i < l; i++, j++) {
 
@@ -297,7 +320,7 @@ function append (a: any[], b: any[]) {
 }
 
 /** Copies elements `[from, to)` of array `b` into `a` starting at index 0, reusing the `dataArray` scratch buffer. */
-function slice (a: any[], b: any[], from: number, to: number) {
+function slice (a: number[], b: ArrayLike<number>, from: number, to: number): number[] {
 
     for (let i = from, j = 0; i < to; i++, j++) {
 
@@ -310,6 +333,8 @@ function slice (a: any[], b: any[], from: number, to: number) {
 }
 
 export {
+    type FBXTransformData,
+    type FBXAttributeInfo,
     isFbxFormatBinary,
     isFbxFormatASCII,
     getFbxVersion,

@@ -2,6 +2,21 @@ import { unzlibSync } from 'three/addons/libs/fflate.module.js'
 import { BinaryReader } from './BinaryReader'
 import { FBXTree } from './FBXTree'
 
+/** Scalar or array property value stored in an FBX node's property list. */
+type FBXPropertyValue = boolean | number | string | ArrayBuffer | boolean[] | number[]
+
+/** A parsed FBX node with well-known fields and arbitrary dynamic children. */
+interface FBXNode {
+    name: string
+    id?: number
+    attrName?: string
+    attrType?: string
+    singleProperty?: boolean
+    propertyList: FBXPropertyValue[]
+    connections?: Array<Array<number | string>>
+    [key: string]: any
+}
+
 /**
  * Parses an FBX file stored in binary format (version >= 6400).
  * Recursively reads nodes and their properties using a `BinaryReader`,
@@ -36,7 +51,7 @@ class BinaryParser {
     }
 
     // Check if reader has reached the end of content.
-    endOfContent (reader: any) {
+    endOfContent (reader: BinaryReader): boolean {
 
         // footer size: 160bytes + 16-byte alignment padding
         // - 16bytes: magic
@@ -59,9 +74,9 @@ class BinaryParser {
     }
 
     // recursively parse nodes until the end of the file is reached
-    parseNode (reader: BinaryReader, version: number) {
+    parseNode (reader: BinaryReader, version: number): FBXNode | null {
 
-        const node: any = {};
+        const node: FBXNode = { name: '', propertyList: [] };
 
         // The first three data sizes depends on version.
         const endOffset = (version >= 7500) ? reader.getUint64() : reader.getUint32();
@@ -75,18 +90,18 @@ class BinaryParser {
         // Regards this node as NULL-record if endOffset is zero
         if (endOffset === 0) return null;
 
-        const propertyList: any[] = [];
+        const propertyList: FBXPropertyValue[] = [];
 
         for (let i = 0; i < numProperties; i++) {
 
-            propertyList.push(this.parseProperty(reader));
+            propertyList.push(this.parseProperty(reader)!);
 
         }
 
         // Regards the first three elements in propertyList as id, attrName, and attrType
         const id = propertyList.length > 0 ? propertyList[0] : '';
-        const attrName = propertyList.length > 1 ? propertyList[1] : '';
-        const attrType = propertyList.length > 2 ? propertyList[2] : '';
+        const attrName = propertyList.length > 1 ? propertyList[1] as string : '';
+        const attrType = propertyList.length > 2 ? propertyList[2] as string : '';
 
         // check if this node represents just a single property
         // like (name, 0) set or (name2, [0, 1, 2]) set of {name: 0, name2: [0, 1, 2]}
@@ -111,7 +126,7 @@ class BinaryParser {
 
     }
 
-    parseSubNode (name: string, node: any, subNode: any) {
+    parseSubNode (name: string, node: FBXNode, subNode: FBXNode): void {
 
         // special case: child node is single property
         if (subNode.singleProperty === true) {
@@ -134,7 +149,7 @@ class BinaryParser {
 
             const array: any[] = [];
 
-            subNode.propertyList.forEach(function (property: any, i: number) {
+            subNode.propertyList.forEach(function (property: FBXPropertyValue, i: number) {
 
                 // first Connection is FBX type (OO, OP, etc.). We'll discard these
                 if (i !== 0) array.push(property);
@@ -161,8 +176,8 @@ class BinaryParser {
 
         } else if (name === 'Properties70' && subNode.name === 'P') {
 
-            let innerPropName = subNode.propertyList[0];
-            let innerPropType1 = subNode.propertyList[1];
+            let innerPropName = subNode.propertyList[0] as string;
+            let innerPropType1 = subNode.propertyList[1] as string;
             const innerPropType2 = subNode.propertyList[2];
             const innerPropFlag = subNode.propertyList[3];
             let innerPropValue;
@@ -219,7 +234,7 @@ class BinaryParser {
 
                 node[subNode.name].push(subNode);
 
-            } else if (node[subNode.name][subNode.id] === undefined) {
+            } else if (subNode.id !== undefined && node[subNode.name][subNode.id] === undefined) {
 
                 node[subNode.name][subNode.id] = subNode;
 
@@ -229,7 +244,7 @@ class BinaryParser {
 
     }
 
-    parseProperty (reader: BinaryReader) {
+    parseProperty (reader: BinaryReader): FBXPropertyValue | undefined {
 
         const type = reader.getString(1);
         let length;
@@ -331,4 +346,4 @@ class BinaryParser {
 
 }
 
-export { BinaryParser }
+export { BinaryParser, type FBXNode, type FBXPropertyValue }
