@@ -142,7 +142,11 @@ export class AnimationSearch extends EventTarget {
 
     // Filter animations based on search text and selected-only mode
     this.filtered_animations_list = this.all_animations.filter(animation => {
-      const matches_search = animation.name.toLowerCase().includes(filter_text)
+
+      // some animation names have underscores (even though that isn't shown on UI), others have spaces. 
+      // we need to support both for searching to get a consistent match
+      const matches_search = animation.name.toLowerCase().replace(/_/g, ' ').includes(filter_text.toLowerCase().trim())
+
       if (this.show_selected_only) {
         return matches_search && animation.isChecked === true
       }
