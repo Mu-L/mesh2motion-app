@@ -194,9 +194,23 @@ export class Mesh2MotionEngine {
     this.dispose_skeleton_helper()
 
     // no color passed, so bone shapes and joints both use the bone category colors
-    this.skeleton_helper = new CustomSkeletonHelper(new_skeleton.bones[0])
+    this.skeleton_helper = new CustomSkeletonHelper(this.find_skeleton_root_bone(new_skeleton))
     this.skeleton_helper.name = helper_name
     this.scene.add(this.skeleton_helper)
+  }
+
+  // Returns the topmost bone whose parent is not also tracked in the skeleton.
+  // Using bones[0] directly failed for custom rigs where the exporter stored
+  // bones in non-hierarchical order, causing getBoneList to miss every bone
+  // outside bones[0]'s subtree.
+  private find_skeleton_root_bone (skeleton: Skeleton): Bone {
+    const bone_set = new Set<Bone>(skeleton.bones)
+    for (const bone of skeleton.bones) {
+      if (!bone_set.has(bone.parent as Bone)) {
+        return bone
+      }
+    }
+    return skeleton.bones[0]
   }
 
   /**
