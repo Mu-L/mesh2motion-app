@@ -53,7 +53,7 @@
 
 .modal-dialog-content * {
    color: var(--text-primary);
-   font-size: 1.1rem;
+   font-size: 1.0rem;
    margin: 0.5rem;
    line-height: 125%;
 }
@@ -196,6 +196,198 @@
   justify-content: flex-end;
   gap: 0.75rem;
   margin-top: 1rem;
+}
+
+/* ── Model Analysis Dialog ── */
+
+.model-analysis-dialog .modal-dialog-content {
+  width: 90vw;
+  max-width: 1100px;
+}
+
+.model-analysis-dialog .modal-dialog-body {
+  padding: 1.5rem;
+}
+
+.model-analysis-dialog .model-analysis {
+  display: block;
+  text-align: left;
+}
+
+.model-analysis-dialog h3 {
+  font-size: 1.4rem;
+  margin: 2rem 0 0.5rem 0;
+}
+
+.model-analysis-dialog h3:first-child {
+  margin-top: 0;
+}
+
+.model-analysis-dialog .model-analysis-source {
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
+}
+
+.model-analysis-dialog .model-analysis-note {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.95rem;
+  opacity: 0.7;
+}
+
+.model-analysis-dialog .model-analysis-clean {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border-left: 3px solid var(--button-primary-bg);
+  background: var(--bg-primary);
+}
+
+.model-analysis-dialog .model-analysis-warnings {
+  margin: 0;
+  padding: 0 0 0 1.25rem;
+  display: block;
+}
+
+.model-analysis-dialog .model-analysis-warnings li {
+  display: list-item;
+  margin: 0 0 0.6rem 0;
+  font-size: 1.05rem;
+  line-height: 135%;
+}
+
+.model-analysis-dialog .model-analysis-affected {
+  display: block;
+  margin: 0.15rem 0 0 0;
+  font-size: 0.9rem;
+  opacity: 0.7;
+  font-style: italic;
+}
+
+.model-analysis-dialog .model-analysis-table-scroll {
+  display: block;
+  overflow-x: visible;
+  margin: 0;
+}
+
+.model-analysis-dialog .model-analysis-table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.model-analysis-dialog .model-analysis-table th,
+.model-analysis-dialog .model-analysis-table td {
+  padding: 0.4rem 0.6rem;
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 130%;
+  text-align: left;
+  white-space: normal;
+  border-bottom: 1px solid var(--border-color);
+  vertical-align: top;
+}
+
+.model-analysis-dialog .model-analysis-table thead th {
+  border-bottom: 1px solid var(--text-primary);
+  font-weight: normal;
+}
+
+.model-analysis-dialog .model-analysis-table tbody th {
+  font-weight: 400;
+  opacity: 0.7;
+}
+
+.model-analysis-dialog .model-analysis-object-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.model-analysis-dialog .model-analysis-object-card {
+  margin: 0;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.4rem;
+  background: color-mix(in srgb, var(--bg-primary) 80%, transparent);
+}
+
+.model-analysis-dialog .model-analysis-object-card-flagged {
+  padding: 2rem;
+  background: color-mix(in srgb, var(--bg-primary) 30%, transparent);
+}
+
+.model-analysis-dialog .model-analysis-name {
+  display: inline-flex;
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.model-analysis-dialog .model-analysis-parent {
+  display: inline-flex;
+  opacity: 0.7;
+}
+
+.model-analysis-dialog .model-analysis-object-properties-inline {
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.6rem;
+  list-style: none;
+}
+
+.model-analysis-dialog .model-analysis-object-property-inline {
+  margin: 0;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.model-analysis-dialog .model-analysis-object-property-inline::after {
+  content: '•';
+  margin-left: 0.6rem;
+  opacity: 0.45;
+}
+
+.model-analysis-dialog .model-analysis-object-property-inline:last-child::after {
+  content: '';
+  margin: 0;
+}
+
+.model-analysis-dialog .model-analysis-object-property-label {
+  margin: 0;
+  opacity: 0.7;
+}
+
+.model-analysis-dialog .model-analysis-object-property-value {
+  margin: 0;
+  font-size: 0.92rem;
+}
+
+@media (max-width: 900px) {
+  .model-analysis-dialog .model-analysis-object-properties-inline {
+    gap: 0.15rem 0.45rem;
+  }
+
+  .model-analysis-dialog .model-analysis-object-property-inline::after {
+    margin-left: 0.45rem;
+  }
+}
+
+.model-analysis-dialog .model-analysis-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.model-analysis-dialog .model-analysis-chip {
+  margin: 0;
+  padding: 0.3rem 0.7rem;
+  border-radius: 1rem;
+  font-size: 0.9rem;
+  background: var(--bg-primary);
 }
 
 /* ── Download Success Dialog ── */
