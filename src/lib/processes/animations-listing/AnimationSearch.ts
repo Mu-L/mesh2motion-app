@@ -17,6 +17,14 @@ export class AnimationSearch extends EventTarget {
   private custom_event: CustomEvent | null = null
   private show_selected_only: boolean = false
 
+  private static readonly mirror_mode_cycle: AnimationMirrorExportMode[] = ['none', 'mirrored', 'both']
+
+  private static readonly mirror_mode_icons: Record<AnimationMirrorExportMode, string> = {
+    none: 'images/icons/mirror.svg',
+    mirrored: 'images/icons/mirror.svg',
+    both: 'images/icons/mirror-both.svg'
+  }
+
   constructor (filter_input_id: string, animation_list_container_id: string, theme_manager: ThemeManager, skeleton_type: SkeletonType) {
     super()
     this.filter_input = document.querySelector(`#${filter_input_id}`)
@@ -91,14 +99,26 @@ export class AnimationSearch extends EventTarget {
       return
     }
 
-    // Add event listener to the container for checkbox/radio changes (event delegation)
+    // Add event listener to the container for checkbox changes (event delegation)
     this.animation_list_container.addEventListener('change', (event) => {
       const target = event.target as HTMLInputElement
-      if (target?.type === 'checkbox' || this.is_mirror_mode_radio_input(target)) {
-        if (target?.type === 'checkbox') {
-          const row_element = target.closest('.anim-item, .anim-custom-item') as HTMLElement | null
-          if (row_element !== null) {
-            row_element.setAttribute('data-selected', target.checked ? 'true' : 'false')
+      if (target?.type === 'checkbox') {
+        const row_element = target.closest('.anim-item, .anim-custom-item') as HTMLElement | null
+        if (row_element !== null) {
+          row_element.setAttribute('data-selected', target.checked ? 'true' : 'false')
+
+          // If a tile is deselected, reset its mirror mode so re-select starts from None.
+          if (!target.checked) {
+            const animation_index_str = row_element.getAttribute('data-animation-index')
+            const animation_index = animation_index_str !== null ? parseInt(animation_index_str) : NaN
+            if (!isNaN(animation_index) && animation_index >= 0 && animation_index < this.all_animations.length) {
+              this.all_animations[animation_index].mirror_export_mode = 'none'
+            }
+
+            const mirror_toggle = row_element.querySelector('button[data-action="cycle-mirror-mode"]') as HTMLButtonElement | null
+            if (mirror_toggle !== null) {
+              this.sync_mirror_toggle_button_state(mirror_toggle, 'none')
+            }
           }
         }
 
@@ -120,10 +140,78 @@ export class AnimationSearch extends EventTarget {
       })
       this.dispatchEvent(this.custom_event)
     })
+
+    // Add event listener for tri-state mirror toggle button clicks.
+    this.animation_list_container.addEventListener('click', (event) => {
+      const target = event.target as HTMLElement
+      const toggle_button = target.closest('button[data-action="cycle-mirror-mode"]') as HTMLButtonElement | null
+      if (toggle_button === null) {
+        return
+      }
+
+      event.preventDefault()
+      event.stopPropagation()
+
+      const animation_index_str = toggle_button.getAttribute('data-animation-index')
+      const animation_index = animation_index_str !== null ? parseInt(animation_index_str) : NaN
+      if (isNaN(animation_index) || animation_index < 0 || animation_index >= this.all_animations.length) {
+        return
+      }
+
+      const current_mode: AnimationMirrorExportMode = this.all_animations[animation_index].mirror_export_mode ?? 'none'
+      const next_mode = this.get_next_mirror_export_mode(current_mode)
+      this.all_animations[animation_index].mirror_export_mode = next_mode
+
+      this.sync_mirror_toggle_button_state(toggle_button, next_mode)
+
+      this.custom_event = new CustomEvent('export-options-changed', {
+        detail: {
+          selectedAnimations: this.get_selected_animation_indices(),
+          exportAnimationCount: this.get_selected_export_animation_count()
+        }
+      })
+      this.dispatchEvent(this.custom_event)
+    })
   }
 
-  private is_mirror_mode_radio_input (target: HTMLInputElement | null): boolean {
-    return target?.type === 'radio' && target.name.startsWith('mirror-export-mode-')
+  private get_next_mirror_export_mode (current_mode: AnimationMirrorExportMode): AnimationMirrorExportMode {
+    const current_index = AnimationSearch.mirror_mode_cycle.indexOf(current_mode)
+    const next_index = current_index < 0
+      ? 0
+      : (current_index + 1) % AnimationSearch.mirror_mode_cycle.length
+
+    return AnimationSearch.mirror_mode_cycle[next_index]
+  }
+
+  private get_mirror_toggle_label (mode: AnimationMirrorExportMode): string {
+    if (mode === 'none') {
+      return 'Mirror mode: None'
+    }
+
+    if (mode === 'mirrored') {
+      return 'Mirror mode: Mirrored'
+    }
+
+    return 'Mirror mode: Both'
+  }
+
+  private sync_mirror_toggle_button_state (toggle_button: HTMLButtonElement, mode: AnimationMirrorExportMode): void {
+    const mirror_toggle_label = this.get_mirror_toggle_label(mode)
+
+    toggle_button.setAttribute('data-mirror-mode', mode)
+    toggle_button.setAttribute('aria-label', mirror_toggle_label)
+    toggle_button.setAttribute('title', mirror_toggle_label)
+
+    const row_element = toggle_button.closest('.anim-item, .anim-custom-item') as HTMLElement | null
+    if (row_element !== null) {
+      row_element.setAttribute('data-mirror-mode', mode)
+    }
+
+    const icon_element = toggle_button.querySelector('img')
+    if (icon_element !== null) {
+      icon_element.setAttribute('src', AnimationSearch.mirror_mode_icons[mode])
+      icon_element.setAttribute('alt', mirror_toggle_label)
+    }
   }
 
   private save_current_row_states (): void {
@@ -141,22 +229,6 @@ export class AnimationSearch extends EventTarget {
       }
     })
 
-    const mirror_mode_radios = this.animation_list_container.querySelectorAll('input[type="radio"][name^="mirror-export-mode-"]')
-    mirror_mode_radios.forEach((radio) => {
-      const input = radio as HTMLInputElement
-      if (!input.checked) {
-        return
-      }
-
-      const animation_index_str = input.getAttribute('data-animation-index')
-      const animation_index = animation_index_str !== null ? parseInt(animation_index_str) : NaN
-      if (isNaN(animation_index) || animation_index < 0 || animation_index >= this.all_animations.length) {
-        return
-      }
-
-      const mode = input.value as AnimationMirrorExportMode
-      this.all_animations[animation_index].mirror_export_mode = mode
-    })
   }
 
   /* animations that are shown on UI after filtering */
@@ -229,30 +301,30 @@ export class AnimationSearch extends EventTarget {
         : ''
 
       const mirror_export_mode = animation_clip.mirror_export_mode ?? 'none'
+      const mirror_toggle_label = this.get_mirror_toggle_label(mirror_export_mode)
       const animation_entry_html = `
-        <div class="${is_custom_animation ? 'anim-custom-item' : 'anim-item'}" data-animation-index="${original_index}" data-selected="${was_checked ? 'true' : 'false'}">
+        <div class="${is_custom_animation ? 'anim-custom-item' : 'anim-item'}" data-animation-index="${original_index}" data-selected="${was_checked ? 'true' : 'false'}" data-mirror-mode="${mirror_export_mode}">
           <button class="secondary-button play anim-play-button" data-action="play-animation" data-index="${original_index}" aria-label="Play ${this.animation_name_clean(animation_clip.name)}">
             ${custom_animation_badge_html}
             <div class="anim-preview-placeholder"${preview_data_src_attribute}></div>
           </button>
 
-          <div class="anim-row-content">
-            <label class="styled-checkbox anim-row-checkbox">
-              <input type="checkbox" name="${animation_clip.name}" value="${original_index}" ${checked_attribute}>
-              <span class="anim-preview-label">${this.animation_name_clean(animation_clip.name)}</span>
-            </label>
+          <label class="styled-checkbox anim-row-checkbox">
+            <input type="checkbox" name="${animation_clip.name}" value="${original_index}" ${checked_attribute}>
+            <span class="anim-preview-label">${this.animation_name_clean(animation_clip.name)}</span>
+          </label>
 
-            <fieldset class="anim-mirror-segmented" aria-label="Mirror export mode for ${this.animation_name_clean(animation_clip.name)}">
-              <input type="radio" id="anim-${original_index}-mirror-none" name="mirror-export-mode-${original_index}" value="none" data-animation-index="${original_index}" ${mirror_export_mode === 'none' ? 'checked' : ''}>
-              <label for="anim-${original_index}-mirror-none">None</label>
-
-              <input type="radio" id="anim-${original_index}-mirror-mirrored" name="mirror-export-mode-${original_index}" value="mirrored" data-animation-index="${original_index}" ${mirror_export_mode === 'mirrored' ? 'checked' : ''}>
-              <label for="anim-${original_index}-mirror-mirrored">Mirrored</label>
-
-              <input type="radio" id="anim-${original_index}-mirror-both" name="mirror-export-mode-${original_index}" value="both" data-animation-index="${original_index}" ${mirror_export_mode === 'both' ? 'checked' : ''}>
-              <label for="anim-${original_index}-mirror-both">Both</label>
-            </fieldset>
-          </div>
+          <button
+            class="no-style-button anim-mirror-mode-toggle"
+            type="button"
+            data-action="cycle-mirror-mode"
+            data-animation-index="${original_index}"
+            data-mirror-mode="${mirror_export_mode}"
+            aria-label="${mirror_toggle_label}"
+            title="${mirror_toggle_label}"
+          >
+            <img src="${AnimationSearch.mirror_mode_icons[mirror_export_mode]}" alt="${mirror_toggle_label}" class="action-icon">
+          </button>
         </div>`
 
       // append the entire item HTML to the DOM element
@@ -293,8 +365,8 @@ export class AnimationSearch extends EventTarget {
         video.className = 'anim-preview'
         const src = placeholder.getAttribute('data-src') ?? ''
         video.src = src
-        video.width = 76
-        video.height = 56
+        video.width = 100
+        video.height = 120
         video.loop = true
         video.muted = true
         video.playsInline = true // tells mobile browsers to play inline instead of going fullscreen
