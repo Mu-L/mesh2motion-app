@@ -8,6 +8,7 @@ import { Utility } from '../Utilities.js'
 import { SkeletonType } from '../enums/SkeletonType.js'
 import { HeadWeightCorrector } from './HeadWeightCorrector.js'
 import { WeightCalculator } from './WeightCalculator.js'
+import { ExtremityWeightCorrector } from './ExtremityWeightCorrector.js'
 import { WeightSmoother } from './WeightSmoother.js'
 import { WeightNormalizer } from './WeightNormalizer.js'
 
@@ -56,6 +57,12 @@ export default class SkinningAlgorithm {
 
     console.time('calculate_closest_bone_weights')
     weight_calculator.calculate_median_bone_weights(skin_indices, skin_weights)
+
+    // Step 1b: Pull parent-side vertices off extremity bones (e.g. knuckle
+    // vertices grabbed by a finger). Runs before smoothing so the corrected
+    // assignments are what the smoother sees.
+    const extremity_corrector = new ExtremityWeightCorrector(this.geometry, this.bones_master_data)
+    extremity_corrector.apply_extremity_weight_correction(skin_indices, skin_weights)
 
     // Step 2: Smooth weight boundaries between adjacent bones
     const weight_smoother = new WeightSmoother(this.geometry, this.bones_master_data)

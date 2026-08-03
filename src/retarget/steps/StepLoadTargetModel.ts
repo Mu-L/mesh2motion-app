@@ -168,6 +168,10 @@ export class StepLoadTargetModel extends EventTarget {
         this.mesh2motion_engine.regenerate_skeleton_helper(skinned_mesh.skeleton, 'Retarget Skeleton Helper')
       }
     })
+
+    // the joint points are only meaningful while editing a skeleton, so keep
+    // them off here and just show the bone shapes
+    this.mesh2motion_engine.sync_skeleton_helper_joint_visibility()
   }
 
   private get_target_skinned_mesh_count (): number {

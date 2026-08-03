@@ -26,8 +26,8 @@ function createVariation(type: string, spec: VariationSpec): ModelVariation {
 
 const HUMAN_TYPE = 'human'
 export const humanVariations: ModelVariation[] = [
-  createVariation(HUMAN_TYPE, { variant: 'base', displayName: 'Mannequin', attribution: 'Quaternius', license: 'CC0' }),
-  createVariation(HUMAN_TYPE, { variant: 'female', displayName: 'Female Mannequin', attribution: 'Quaternius', license: 'CC0' }),
+  createVariation(HUMAN_TYPE, { variant: 'male', displayName: 'Male', attribution: 'Quaternius', license: 'CC0' }),
+  createVariation(HUMAN_TYPE, { variant: 'female', displayName: 'Female', attribution: 'Quaternius', license: 'CC0' }),
   createVariation(HUMAN_TYPE, { variant: 'zombie', displayName: 'Zombie', attribution: 'Kenney.nl', license: 'CC0' }),
   createVariation(HUMAN_TYPE, { variant: 'sophia', displayName: 'Sophia', attribution: 'Tysan Tan', license: 'CC-SA 4.0' }),
   createVariation(HUMAN_TYPE, { variant: 'jay', displayName: 'Jay', attribution: 'Blender Studio', license: 'CC-BY' }),
@@ -39,7 +39,6 @@ const FOX_TYPE = 'fox'
 export const foxVariations: ModelVariation[] = [
   createVariation(FOX_TYPE, { variant: 'fox', displayName: 'Fox' }),
   createVariation(FOX_TYPE, { variant: 'dog', displayName: 'Dog' }),
-  createVariation(FOX_TYPE, { variant: 'horse', displayName: 'Horse' }),
   createVariation(FOX_TYPE, { variant: 'cat', displayName: 'Carrot', attribution: 'David Revoy', license: 'CC-BY' }),
   createVariation(FOX_TYPE, { variant: 'panda', displayName: 'Panda' }),
 ]

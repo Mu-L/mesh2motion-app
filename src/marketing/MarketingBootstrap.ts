@@ -74,6 +74,7 @@ export class MarketingBootstrap {
       )
 
       this.rebuild_skeleton_helper(skinned_meshes)
+      this.apply_wireframe_to_skinned_meshes(skinned_meshes)
  
     }) as EventListener)
 
@@ -85,6 +86,12 @@ export class MarketingBootstrap {
     // we are re-creating the engine, so need to manually add the event listeners again
     this.mesh2motion_engine.load_model_step.addEventListener('modelLoaded', () => {
       this.mesh2motion_engine.shake_camera()
+
+      // reset wireframe toggle when a new model is loaded
+      const wireframe_checkbox = this.mesh2motion_engine.ui.dom_wireframe_checkbox
+      if (wireframe_checkbox !== null) {
+        wireframe_checkbox.checked = false
+      }
 
       // resolve the rig file path from the central config
       const rig_file = RigConfig.rig_file_for(this.skeleton_type)
@@ -114,6 +121,16 @@ export class MarketingBootstrap {
           this.mesh2motion_engine.skeleton_helper.visible = show_skeleton
         }
       }
+  }
+
+  private apply_wireframe_to_skinned_meshes (skinned_meshes: SkinnedMesh[]): void {
+    const is_wireframe = this.mesh2motion_engine.ui.dom_wireframe_checkbox?.checked ?? false
+    skinned_meshes.forEach((mesh) => {
+      const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
+      materials.forEach((mat) => {
+        (mat as any).wireframe = is_wireframe
+      })
+    })
   }
 
 }

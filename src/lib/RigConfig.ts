@@ -1,5 +1,6 @@
 import { SkeletonType } from './enums/SkeletonType'
-import { humanVariations, foxVariations, birdVariations, kaijuVariations, fishVariations, ModelVariation } from './RigModelVariations'
+import { humanVariations, foxVariations, birdVariations, kaijuVariations, 
+  fishVariations, ModelVariation } from './RigModelVariations'
 
 export interface RigConfigEntry {
   skeleton_type: SkeletonType // The SkeletonType enum member for this rig
@@ -107,6 +108,16 @@ export class RigConfig {
       position_tracking_bone_name: 'pelvis',
       skeleton_template_image_url: 'rigs/reference/shark.png',
       model_variations: fishVariations
+    } satisfies RigConfigEntry,
+    {
+      skeleton_type: SkeletonType.Horse,
+      model_file: 'models/model-horse.glb',
+      rig_file: 'rigs/rig-horse.glb',
+      rig_display_name: 'Horse',
+      animation_files: ['../animations/horse-animations.glb'],
+      animation_preview_folder: 'horse',
+      position_tracking_bone_name: 'hips',
+      skeleton_template_image_url: 'rigs/reference/horse.png',
     } satisfies RigConfigEntry
   ]
 

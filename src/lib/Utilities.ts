@@ -105,6 +105,18 @@ export class Utility {
     obj.removeFromParent()
   }
 
+  /**
+   * A "leaf" bone is an orientation-only tip at the end of a chain (finger/toe
+   * tips, head top, tail/ear/wing tips). These are not meant to be animated, so
+   * the skinning algorithm ignores them. Identified as childless AND name-marked.
+   * Human rigs mark them with `_leaf`; the animal rigs mark them with `tip`.
+   */
+  static is_leaf_bone (bone: Bone): boolean {
+    if (bone.children.length > 0) return false
+    const name = bone.name.toLowerCase()
+    return name.includes('leaf') || name.includes('tip')
+  }
+
   static bone_list_from_hierarchy (bone_hierarchy: Object3D): Bone[] {
     if (bone_hierarchy === undefined || bone_hierarchy === null) {
       console.warn('bone_hierarchy is undefined or null')

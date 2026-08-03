@@ -33,8 +33,16 @@ export class DownloadSuccessDialog {
             Join Discord Server
           </a>
         </div>
-
       </div>
+
+      <div class="offline-download-note" style="text-align: center;">
+        <p>Did you know there is an offline version available? Visit <a href="https://github.com/Mesh2Motion/mesh2motion-desktop/releases" style="font-size: 100%" target="_blank">the releases page</a>.</p>
+      </div>
+
+      <div class="download-success-desktop">
+        <p>The animations have been saved to your Downloads folder</p>
+      </div>
+
       <button class="download-success-dialog-close secondary-button">Close</button>
     </div> 
   `

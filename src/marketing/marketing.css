@@ -35,11 +35,6 @@ button.active-button {
     background-color: var(--button-primary-bg);
 }
 
-#animations-items {
-    max-height: calc(100vh - 19rem);
-}
-
-
 /* model switcher styles on the explore page */ 
 #model-variation-switcher {
   display: flex;

@@ -5,7 +5,7 @@ import { TransformSpace } from './enums/TransformSpace'
 import { Utility } from './Utilities'
 import { ModelCleanupUtility } from './processes/load-model/ModelCleanupUtility'
 import { DownloadSuccessDialog } from './components/download-success/DownloadSuccessDialog'
-import { type Bone } from 'three'
+import { type Bone, type Material, type MeshBasicMaterial, type MeshPhongMaterial, type MeshStandardMaterial } from 'three'
 
 export class EventListeners {
   // Track the pointer that started canvas drag so touch/pencil moves stay consistent
@@ -234,6 +234,17 @@ export class EventListeners {
       } else {
         console.warn('Skeleton helper is undefined, so we cannot show it')
       }
+    })
+
+    this.bootstrap.ui.dom_wireframe_checkbox?.addEventListener('change', (event: Event) => {
+      const is_wireframe = (event.target as HTMLInputElement).checked
+      const skinned_meshes = this.bootstrap.animations_listing_step.active_skinned_meshes()
+      skinned_meshes.forEach((mesh) => {
+        const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
+        materials.forEach((mat: Material) => {
+          (mat as MeshBasicMaterial | MeshPhongMaterial | MeshStandardMaterial).wireframe = is_wireframe
+        })
+      })
     })
 
     this.bootstrap.ui.dom_export_button?.addEventListener('click', () => {

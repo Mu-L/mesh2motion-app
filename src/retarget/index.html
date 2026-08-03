@@ -12,8 +12,8 @@
         <link rel="stylesheet" href="../settings-dropdown.css" crossorigin="anonymous" />
         <link rel="stylesheet" href="./retarget.css" crossorigin="anonymous" />
 
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
         <link rel="stylesheet" href="../dialog.css" crossorigin="anonymous" />
+        <link rel="stylesheet" href="../offline.css" crossorigin="anonymous" />
 
     </head>
 
@@ -21,7 +21,8 @@
 
         <nav>
         <div style="display: inline-flex; align-items: center;">
-            <a href="https://mesh2motion.org"><img src="../images/mesh2motion.svg" width="200" /></a>
+            <a id="logo-branding" href="https://mesh2motion.org">
+                <img src="../images/mesh2motion.svg" width="130" /></a>
             <a href="/">Explore</a>
             <a href="/create.html" >Use Your Model</a>
             <span class="active-nav-item">Use Your Rigged Model</span>
@@ -53,11 +54,13 @@
                         <span data-tippy-content="This feature is still being developed. The main stable workflow is to use a Mesh2Motion rig that you 'skin' in another application like Blender. Mixamo skeletons supported as long as there is only 1 skeleton in the file." >
                             <span class="button-icon-group">
                                 <span>Experimental</span>
-                                <span class="material-symbols-outlined" >help</span>
+                               
+                                <img src="../images/icons/help.svg" alt="Help" width="20" height="20" />
+
                             </span>
                         </span>
 
-                        <a style="font-size: 1rem" target="_blank" href="https://github.com/Mesh2Motion/mesh2motion-assets/tree/main/rigs">View M2M rigs from GitHub.</a>
+                        <a id="m2m-model-github-link" style="font-size: 1rem" target="_blank" href="https://github.com/Mesh2Motion/mesh2motion-assets/tree/main/rigs">View M2M rigs from GitHub.</a>
                     </div>
 
                     <p style="margin: 0; margin-top: 1rem;">Import your rig and map the bones to continue.</p>
@@ -97,7 +100,10 @@
                         <p class="bone-map-heading">
                             <span>Your 3D Rig Model</span>
                             <span id="auto-bone-map-match">✨Mixamo</span>
-                            <span id="view-bone-tree-button" data-tippy-content="View bone hierarchy for for debugging purposes" style="display: none;">👓</span>
+                            <span id="view-bone-tree-button" 
+                                data-tippy-content="View bone hierarchy for for debugging purposes" style="display: none;">
+                                Analyze
+                            </span>
                         </p>
                         <div class="bone-map-content">
                             <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
@@ -135,21 +141,40 @@
                         aria-label="Continue requirements help"
                         style="display: inline-flex; align-items: center; color: var(--text-secondary); cursor: help;"
                     >
-                        <span class="material-symbols-outlined" style="font-size: 1.2rem;">help</span>
+                      
+                        <img src="../images/icons/help.svg" alt="Help" width="20" height="20" />
                     </span>
                 </div>
             </span>
 
-            <!-- animation listings area -->             
+            <!-- animation listings area -->
             <span id="skinned-step-animation-export-options">
 
                 <div id="animations-listing">
-    
-                    <!-- Filter textbox for animations -->
-                    <span style="position: relative">
-                        <input type="text" id="animation-filter" placeholder="Filter animations...">
-                        <div id="animation-listing-count">0</div>
-                    </span>
+
+                    <!-- Filter textbox and tab switcher side by side -->
+                    <div style="display: flex; gap: 1rem; align-items: flex-start;">
+                        <!-- Tab switcher for Library vs Selected animations -->
+                        <div class="pill-switch-group" aria-label="Animation view mode" style="margin: 0;">
+                            <div class="pill-switch">
+                                <input type="radio" id="animation-view-library" name="animation-view-mode" value="library" checked />
+                                <label for="animation-view-library">Library</label>
+                                <input type="radio" id="animation-view-selected" name="animation-view-mode" value="selected" />
+                                <label for="animation-view-selected">Selected</label>
+                            </div>
+                        </div>
+
+                        <!-- Filter textbox for animations -->
+                        <span>
+                            <input type="text" id="animation-filter" placeholder="Filter">
+                        </span>
+                    </div>
+                    
+                    <!-- Select all / Deselect all button and animation count -->
+                    <div style="display: flex; gap: 1rem; align-items: center; margin-top: 0.5rem; justify-content: space-between;">
+                        <button id="toggle-select-all-animations" class="secondary-button">Select All</button>
+                        <div id="animation-listing-count" style="white-space: nowrap;">0 animations</div>
+                    </div>
        
                     <!-- loading progress when animations start getting larger. -->
                     <div id="animation-progress-loader-container" style="display: none">
@@ -171,7 +196,9 @@
                         <!-- I renamed the button ID since we need to process the animations differently -->
                         <button id="export-retargeting-button" data-tippy-content="Exporting will combine all animations into a single GLB file.">
                             <span class="button-icon-group">
-                                <span class="material-symbols-outlined">save_alt</span>
+                                
+                                <img src="../images/icons/download.svg" alt="Help" width="16" height="16" />
+
                                 <span>Download <span id="animation-selection-count">0</span></span>
                             </span>
                         </button>

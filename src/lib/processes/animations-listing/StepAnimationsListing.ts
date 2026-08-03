@@ -477,6 +477,23 @@ export class StepAnimationsListing extends EventTarget {
       this.play_animation(this.current_playing_index)
     })
 
+    // event listener for animation view mode tabs (Library vs Selected)
+    const animation_view_radios = document.querySelectorAll('input[name="animation-view-mode"]')
+    animation_view_radios.forEach((radio) => {
+      radio.addEventListener('change', (event) => {
+        const target = event.target as HTMLInputElement
+        const show_selected_only = target.value === 'selected'
+        this.animation_search?.set_show_selected_only(show_selected_only)
+      })
+    })
+
+    // event listener for select all / deselect all button
+    const toggle_select_all_button = document.querySelector('#toggle-select-all-animations')
+    toggle_select_all_button?.addEventListener('click', () => {
+      this.animation_search?.toggle_select_all_animations()
+      this.update_download_button_enabled()
+    })
+
     // helps ensure we don't add event listeners multiple times
     this.has_added_event_listeners = true
   }

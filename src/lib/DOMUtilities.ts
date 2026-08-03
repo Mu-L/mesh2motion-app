@@ -57,8 +57,8 @@ export class DOMUtilities {
     mount.innerHTML = `
       <a href="#" id="learn-link">Learn</a>
       <a href="#" id="attribution-link">Contributors</a>
-      <a href="${nav_links.support_href}" target="_blank">💗</a>
-      <a href="${nav_links.github_href}" target="_blank">
+      <a href="${nav_links.support_href}" id="nav-support-mesh2motion" target="_blank">💗</a>
+      <a href="${nav_links.github_href}" id="nav-github" target="_blank">
         <img src="${nav_links.github_icon_src}" width="24" height="24" alt="GitHub" />
       </a>
       <span id="settings-dropdown-mount"></span>
@@ -101,7 +101,7 @@ export class DOMUtilities {
 
         <div id="play-controls">
           <button id="play-pause-button" class="animation-control-button" disabled>
-            <span class="material-symbols-outlined">play_arrow</span>
+             <img src="../images/icons/play.svg" alt="Play" width="14" height="14" />
           </button>
 
           <span>
@@ -113,8 +113,15 @@ export class DOMUtilities {
 
           <div id="skeleton-toggle" class="styled-checkbox icon-toggle">
             <input type="checkbox" id="show-skeleton-checkbox" name="show-skeleton" value="show" style="display: none" />
-            <label for="show-skeleton-checkbox" data-tippy-content="Show skeleton" tabindex="0" style="border-radius: 0">
+            <label for="show-skeleton-checkbox" data-tippy-content="Show skeleton" tabindex="0" style="border-radius: 0; padding: 0.4rem;">
               <img src="../images/icons/bone-display.svg" class="action-icon" alt="Show skeleton" style="user-select: none" />
+            </label>
+          </div>
+
+          <div id="wireframe-toggle" class="styled-checkbox icon-toggle">
+            <input type="checkbox" id="wireframe-checkbox" name="wireframe" value="wireframe" style="display: none" />
+            <label for="wireframe-checkbox" data-tippy-content="Toggle wireframe" tabindex="0" style="border-radius: 0; padding: 0.4rem;">
+              <img src="../images/icons/wireframe.svg" class="action-icon" alt="Toggle wireframe" style="user-select: none" />
             </label>
           </div>
         </div>
@@ -135,7 +142,9 @@ export class DOMUtilities {
     mount.innerHTML = `
       <div id="settings-dropdown-container" class="nav-dropdown">
         <button id="settings-toggle" class="nav-icon-button" aria-expanded="false" aria-controls="settings-dropdown-content" aria-haspopup="true" aria-label="Open settings">
-          <span class="material-symbols-outlined">settings</span>
+          
+        <img src="/images/icons/settings.svg" alt="Settings" width="30" height="30" />
+        
         </button>
 
         <div id="settings-dropdown-content" class="nav-dropdown-content" hidden>

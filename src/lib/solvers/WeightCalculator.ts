@@ -25,6 +25,10 @@ export class WeightCalculator {
   // each index will be a bone index. the value will be a list of vertex indices that belong to that bone
   private readonly bones_vertex_segmentation: number[][] = []
 
+  // bone indices that should never receive vertex weights: the root (global
+  // transform only) and leaf/orientation bones (finger/toe/tail tips, etc.)
+  private readonly skipped_bone_indices = new Set<number>()
+
   constructor (bones: Bone[], geometry: BufferGeometry, skeleton_type: SkeletonType | null) {
     this.bones = bones
     this.geometry = geometry
@@ -38,6 +42,16 @@ export class WeightCalculator {
   public initialize_caches (): void {
     this.cached_median_child_bone_positions = this.bones.map(b => this.midpoint_to_child(b))
     this.bones.forEach((b, idx) => this.bone_object_to_index.set(b, idx))
+
+    // The root bone is only for global transform changes, and leaf/orientation
+    // bones exist only to orient their parent — neither should be assigned any
+    // vertices. Compute the skip set once instead of checking names per vertex.
+    this.bones.forEach((b, idx) => {
+      if (b.name === 'root' || Utility.is_leaf_bone(b)) {
+        this.skipped_bone_indices.add(idx)
+      }
+    })
+
     this.distance_to_bottom_of_position_tracking_bone = this.calculate_distance_to_bottom_of_position_tracking_bone()
   }
 
@@ -58,9 +72,10 @@ export class WeightCalculator {
       let closest_bone_index: number = 0
 
       this.bones.forEach((bone, idx) => {
-        // The root bone is only for global transform changes, so we won't assign it to any vertices
-        if (bone.name === 'root') {
-          return // skip the root bone and continue to the next bone
+        // Skip the root bone (global transform only) and leaf/orientation bones.
+        // See skipped_bone_indices, computed once in initialize_caches.
+        if (this.skipped_bone_indices.has(idx)) {
+          return
         }
 
         // hip bones should have custom logic for distance. If the distance is too far away we should ignore it

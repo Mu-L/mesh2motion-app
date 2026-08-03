@@ -115,7 +115,7 @@ h1 {
 }
 
 #animations-items {
-    max-height: calc(100vh - 14rem);
+    max-height: calc(100vh - 17rem);
 }
 
 #auto-bone-map-match {
@@ -140,6 +140,17 @@ h1 {
     display: flex;
     gap: 1rem;
     border-bottom: 1px solid var(--bg-tertiary);
+}
+
+.bone-tree-dialog-warning {
+    margin: 0.6rem 0;
+    padding: 0.5rem 0.75rem;
+    border-left: 3px solid #f0a500;
+    background: rgba(240, 165, 0, 0.1);
+    color: #f0a500;
+    font-size: 0.875rem;
+    line-height: 1.4;
+    border-radius: 0 4px 4px 0;
 }
 
 .bone-tree-dialog-list,
@@ -167,10 +178,9 @@ h1 {
 }
 
 #view-bone-tree-button {
-    font-size: 1.5rem;
     cursor: pointer;
     opacity: 0.7;
-    transition: opacity 0.3s;
+    text-decoration: underline;
 }
 #view-bone-tree-button:hover {
     opacity: 1;

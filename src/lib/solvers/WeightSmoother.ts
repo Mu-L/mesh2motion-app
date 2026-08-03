@@ -11,7 +11,7 @@ import { BoneClassifier } from './BoneClassifier.js'
  * Applies different smoothing strategies based on bone category:
  * - Torso: wider multi-ring gradient for voluminous areas
  * - Limbs: directional smoothing toward child bone only
- * - Extremities: minimal single-ring smoothing
+ * - Extremities: no smoothing — hands/fingers/feet/toes stay rigid
  */
 export class WeightSmoother {
   private readonly geometry: BufferGeometry
@@ -49,6 +49,9 @@ export class WeightSmoother {
 
     // Pass 4: Apply standard smoothing for remaining boundaries
     this.apply_standard_smoothing(skin_indices, skin_weights, position_to_indices, boundary_pairs)
+
+    // Pass 5: Extremity boundaries — intentionally left untouched (no smoothing)
+    this.apply_extremity_smoothing(boundary_pairs)
   }
 
   /**
@@ -84,6 +87,8 @@ export class WeightSmoother {
           smoothing_type = SmoothingType.Torso
         } else if (this.classifier.is_limb_boundary(bone_a, bone_b)) {
           smoothing_type = SmoothingType.Limb
+        } else if (this.classifier.is_extremity_boundary(bone_a, bone_b)) {
+          smoothing_type = SmoothingType.Extremity
         }
 
         pairs.push({ vertex_a: i, vertex_b: j, bone_a, bone_b, smoothing_type })
@@ -214,6 +219,17 @@ export class WeightSmoother {
           pair.vertex_a, pair.vertex_b, pair.bone_a, pair.bone_b, 0.5)
       }
     }
+  }
+
+  /**
+   * Extremity smoothing: intentionally does nothing. Hands, fingers, feet, and
+   * toes stay 100% rigid to their assigned bone — any blend smears across the
+   * small part and looks mushy. Kept as an explicit pass so the intent is clear
+   * and so these boundaries aren't accidentally handled elsewhere.
+   */
+  private apply_extremity_smoothing (pairs: BoundaryPair[]): void {
+    // no-op by design; extremity↔extremity boundaries receive no blending
+    void pairs
   }
 
   /**
@@ -385,5 +401,6 @@ interface BoundaryPair {
 enum SmoothingType {
   Torso = 'torso',
   Limb = 'limb',
+  Extremity = 'extremity',
   Standard = 'standard'
 }

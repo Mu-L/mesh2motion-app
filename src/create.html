@@ -22,16 +22,13 @@
     />
     <link rel="stylesheet" href="./dialog.css" crossorigin="anonymous" />
     <link rel="stylesheet" href="./settings-dropdown.css" crossorigin="anonymous" />
+    <link rel="stylesheet" href="./offline.css" crossorigin="anonymous" />
 
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0"
-    />
 
     <nav>
       <div style="display: inline-flex; align-items: center">
-        <a href="https://mesh2motion.org"
-          ><img src="./images/mesh2motion.svg" width="200"
+        <a id="logo-branding" href="https://mesh2motion.org"
+          ><img src="./images/mesh2motion.svg" width="130" alt="Mesh2Motion logo"
         /></a>
         <a href="/">Explore</a>
         <span class="active-nav-item">Use Your Model</span>
@@ -61,9 +58,9 @@
             data-tippy-content="GLB and FBX preferred. ZIP is for GLTF+BIN and textures separately. DAE+textures is also supported in ZIP format."
           >
             <span class="button-icon-group">
-              <span class="material-symbols-outlined">upload</span>
+              <img src="images/icons/upload.svg" alt="Upload" width="16" height="16" />
               <span>Upload</span>
-              <span class="material-symbols-outlined">help</span>
+              <img src="images/icons/help.svg" alt="Help" width="20" height="20" />
             </span>
           </label>
           <input
@@ -95,11 +92,10 @@
             />
             <label for="load-model-debug-checkbox">Debug</label>
 
-            <span
-              class="material-symbols-outlined"
+            <img 
               data-tippy-content="Replaces all materials with a 'normal' shader for debugging"
-              >help</span
-            >
+              src="images/icons/help.svg" alt="Help" width="20" height="20" />
+
           </div>
         </div>
 
@@ -149,7 +145,9 @@
           <div id="hand-skeleton-options" class="alternate-background-section">
             <span style="display: flex; gap: 1rem;">
               <span>Hand Options</span>
-              <span class="material-symbols-outlined" data-tippy-content="Variations on which finger bones you want to keep. Single Hand Bone removes all fingers and keeps only the hand bone.">help</span>
+
+              <img data-tippy-content="Variations on which finger bones you want to keep. Single Hand Bone removes all fingers and keeps only the hand bone." src="images/icons/help.svg" alt="Help" width="20" height="20" />
+
             </span>
             <select id="hand-skeleton-selection">
               <option value="all-fingers">All Fingers</option>
@@ -163,7 +161,9 @@
           <div id="scale-skeleton-controls" style="display: none; flex-direction: column;">
             <div style="display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 1rem;">
               <label style="display:inline-flex">Scale skeleton</label>
-              <span class="material-symbols-outlined" data-tippy-content="Adjust the overall scale of the skeleton">help</span>
+
+              <img data-tippy-content="Adjust the overall scale of the skeleton" src="images/icons/help.svg" alt="Help" width="20" height="20" />
+
               <button class="secondary-button" id="reset-skeleton-scale-button">
                 <img src="images/icons/reset.svg" alt="Reset Skeleton Scale" width="20" height="20" />
               </button>
@@ -248,10 +248,10 @@
           <div class="pill-switch-group" aria-label="Move Bone Children">
             <span class="pill-switch-label">Move Bone Children</span>
             <div id="independent-bone-movement-group" class="pill-switch">
-              <input type="radio" id="independent-bone-movement" name="independent-bone-movement" value="yes" />
+              <input type="radio" id="independent-bone-movement" name="independent-bone-movement" value="yes" checked />
               <label for="independent-bone-movement">Yes</label>
 
-              <input type="radio" id="independent-bone-movement-no" name="independent-bone-movement" value="no" checked />
+              <input type="radio" id="independent-bone-movement-no" name="independent-bone-movement" value="no" />
               <label for="independent-bone-movement-no">No</label>
             </div>
           </div>
@@ -259,9 +259,9 @@
           <div class="pill-switch-group" aria-label="Preview Display">
             <span class="pill-switch-label">Preview Display</span>
             <div id="mesh-preview-group" class="pill-switch">
-              <input id="preview-painted" type="radio" name="mesh-preview-type" value="weight-painted" checked="checked" />
+              <input id="preview-painted" type="radio" name="mesh-preview-type" value="weight-painted" />
               <label for="preview-painted" title="Weight painted mesh">Weights</label>
-              <input id="preview-textured" type="radio" name="mesh-preview-type" value="textured" />
+              <input id="preview-textured" type="radio" name="mesh-preview-type" value="textured" checked="checked" />
               <label for="preview-textured" title="Textured mesh">Textured</label>
             </div>
           </div>
@@ -280,7 +280,9 @@
             <div class="styled-checkbox">
               <input type="checkbox" id="preview-plane-checkbox" />
               <label for="preview-plane-checkbox">Use Head Weight Correction</label>
-              <span class="material-symbols-outlined" data-tippy-content="If you are having issues with the arms distorting your head (e.g. chibi characters), use a divider to help define the head area.">help</span>
+
+              <img data-tippy-content="If you are having issues with the arms distorting your head (e.g. chibi characters), use a divider to help define the head area." src="images/icons/help.svg" alt="Help" width="20" height="20" />
+
             </div>
             <div id="preview-plane-setting-container" style="display: flex; align-items: center; gap: 0.5rem;">
               <label for="preview-plane-height-input">Height:</label>
@@ -303,11 +305,29 @@
 
         <span id="skinned-step-animation-export-options">
           <div id="animations-listing">
-            <!-- Filter textbox for animations -->
-            <span style="position: relative">
-                <input type="text" id="animation-filter" placeholder="Filter animations...">
-                <div id="animation-listing-count">0</div>
-            </span>
+            <!-- Filter textbox and tab switcher side by side -->
+            <div style="display: flex; gap: 1rem; align-items: flex-start;">
+                <!-- Tab switcher for Library vs Selected animations -->
+                <div class="pill-switch-group" aria-label="Animation view mode" style="margin: 0;">
+                    <div class="pill-switch">
+                        <input type="radio" id="animation-view-library" name="animation-view-mode" value="library" checked />
+                        <label for="animation-view-library">Library</label>
+                        <input type="radio" id="animation-view-selected" name="animation-view-mode" value="selected" />
+                        <label for="animation-view-selected">Selected</label>
+                    </div>
+                </div>
+
+                <!-- Filter textbox for animations -->
+                <span style="position: relative; flex: 1;">
+                    <input type="text" id="animation-filter" placeholder="Filter">
+                </span>
+            </div>
+
+            <!-- Select all / Deselect all button and animation count -->
+            <div id="toggle-select-all-container">
+                <button id="toggle-select-all-animations" class="secondary-button">Select All</button>
+                <div id="animation-listing-count" style="white-space: nowrap;">0 animations</div>
+            </div>
 
 
             <!-- loading progress when animations start getting larger. -->
@@ -319,7 +339,7 @@
 
             <!-- javascript will populate this item with animations
                          that we get from the animations file(s)  -->
-            <div id="animations-items"></div>
+            <div id="animations-items" class="create-page"></div>
 
             <!-- slider to control arm extension (hide this feature until the base functionality is more stable) -->
             <div id="arm-extension-options">
@@ -333,11 +353,10 @@
                 "
               >
                 <label style="display: inline-flex">Expand / Contract Arms</label>
-                <span
-                  class="material-symbols-outlined"
-                  data-tippy-content="Fine-tune arm spread across all animations for heavier or skinnier characters."
-                  >help</span
-                >
+
+
+                 <img src="../images/icons/help.svg" alt="Help" width="20" height="20"
+                  data-tippy-content="Fine-tune arm spread across all animations for heavier or skinnier characters." />
 
                 <button class="secondary-button" id="reset-arm-extension-button">
                   <img
@@ -414,7 +433,9 @@
                 data-tippy-content="Import GLB animations. Only Mesh2Motion rigs are supported at this time."
                 aria-label="Import GLB animations. Only Mesh2Motion rigs are supported at this time."
               >
-                <span class="material-symbols-outlined">upload</span>
+
+              <img src="images/icons/upload.svg" alt="Upload" width="16" height="16" />
+
               </button>
               <input
                 id="import-animations-input"
@@ -430,7 +451,8 @@
                   data-tippy-content="Exporting will combine all animations into a single GLB file."
                 >
                   <span class="button-icon-group">
-                    <span class="material-symbols-outlined">save_alt</span>
+                    <img src="images/icons/download.svg" alt="Download" width="16" height="16" />
+
                     <span
                       >Download
                       <span id="animation-selection-count">0</span></span
@@ -452,7 +474,7 @@
                     data-tippy-content="Download options"
                     aria-label="Open download options"
                   >
-                    <span class="material-symbols-outlined">arrow_drop_down</span>
+                    <img src="images/icons/arrow-dropdown.svg" alt="dropdown" width="16" height="16" />
                   </button>
 
                   <div

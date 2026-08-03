@@ -18,12 +18,13 @@
     <link rel="stylesheet" href="./dialog.css" crossorigin="anonymous" />
     <link rel="stylesheet" href="./settings-dropdown.css" crossorigin="anonymous" />
     <link rel="stylesheet" href="./marketing/marketing.css" crossorigin="anonymous" />
-
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+    <link rel="stylesheet" href="./offline.css" crossorigin="anonymous" />
 
     <nav>
         <div style="display: inline-flex; align-items: center;">
-            <a href="https://mesh2motion.org"><img src="./images/mesh2motion.svg" width="200" /></a>
+            <a id="logo-branding" href="https://mesh2motion.org">
+                <img src="./images/mesh2motion.svg" width="130" alt="Mesh2Motion logo" />
+            </a>
             <span class="active-nav-item">Explore</span>
             <a href="/create.html">Use Your Model</a>
             <a href="/retarget/index.html">Use Your Rigged Model</a>
@@ -106,13 +107,30 @@
             <span id="skinned-step-animation-export-options">
 
                 <div id="animations-listing">
-    
-                    <!-- Filter textbox for animations -->     
+
+                    <!-- Filter textbox and tab switcher side by side -->
+                    <div style="display: flex; gap: 1rem; align-items: flex-start;">
+                        <!-- Tab switcher for Library vs Selected animations -->
+                        <div class="pill-switch-group" aria-label="Animation view mode" style="margin: 0;">
+                            <div class="pill-switch">
+                                <input type="radio" id="animation-view-library" name="animation-view-mode" value="library" checked />
+                                <label for="animation-view-library">Library</label>
+                                <input type="radio" id="animation-view-selected" name="animation-view-mode" value="selected" />
+                                <label for="animation-view-selected">Selected</label>
+                            </div>
+                        </div>
+
+                        <!-- Filter textbox for animations -->
+                        <span style="position: relative; flex: 1;">
+                            <input type="text" id="animation-filter" placeholder="Filter">
+                        </span>
+                    </div>
                     
-                    <span style="position: relative">
-                        <input type="text" id="animation-filter" placeholder="Filter animations...">
-                        <div id="animation-listing-count">0</div>
-                    </span>
+                    <!-- Select all / Deselect all button and animation count -->
+                    <div id="toggle-select-all-container">
+                        <button id="toggle-select-all-animations" class="secondary-button">Select All</button>
+                        <div id="animation-listing-count" style="white-space: nowrap;">0 animations</div>
+                    </div>
                     
 
                     <!-- loading progress when animations start getting larger. -->
@@ -141,15 +159,15 @@
                         </div>
 
                         <button class="secondary-button" id="import-animations-button" data-tippy-content="Import GLB animations. Only Mesh2Motion rigs are supported at this time." aria-label="Import GLB animations. Only Mesh2Motion rigs are supported at this time.">
-                            <span class="material-symbols-outlined">upload</span>
+                            <img src="images/icons/upload.svg" alt="Upload" width="20" height="20" />
                         </button>
                         <input id="import-animations-input" type="file" accept=".glb" multiple style="display:none" />
 
                         <div class="download-combo">
                             <button id="export-button" data-tippy-content="Exporting will combine all animations into a single GLB file.">
                                 <span class="button-icon-group">
-                                    <span class="material-symbols-outlined">save_alt</span>
-                                    <span>Download <span id="animation-selection-count">0</span></span>
+                                   <img src="images/icons/download.svg" alt="Download" width="16" height="16" />
+                                   <span>Download <span id="animation-selection-count">0</span></span>
                                 </span>
                             </button>
 
@@ -164,18 +182,35 @@
                                     data-tippy-content="Download options"
                                     aria-label="Open download options"
                                 >
-                                    <span class="material-symbols-outlined">arrow_drop_down</span>
+
+                                <img src="images/icons/arrow-dropdown.svg" alt="dropdown" width="16" height="16" />
+
                                 </button>
 
                                 <div id="download-settings" class="download-settings-panel" role="dialog" aria-label="Download settings" hidden>
-                                    <span class="download-settings-label">Exported Bone Names</span>
-                                    <fieldset id="download-bone-naming-group" class="toggle" aria-label="Bone naming structure">
-                                        <input type="radio" id="bone-naming-default" name="bone-naming-structure" value="default" checked>
-                                        <label for="bone-naming-default">Default</label>
+                                    <span class="download-settings-header">Download Options</span>
 
-                                        <input type="radio" id="bone-naming-mixamo" name="bone-naming-structure" value="mixamo">
-                                        <label for="bone-naming-mixamo">Mixamo</label>
-                                    </fieldset>
+                                    <div id="download-bone-naming-section" class="options-container">
+                                        <span class="download-settings-label">Bone Names</span>
+                                        <fieldset id="download-bone-naming-group" class="toggle" aria-label="Bone naming structure">
+                                            <input type="radio" id="bone-naming-default" name="bone-naming-structure" value="default" checked>
+                                            <label for="bone-naming-default">Default</label>
+
+                                            <input type="radio" id="bone-naming-mixamo" name="bone-naming-structure" value="mixamo">
+                                            <label for="bone-naming-mixamo">Mixamo</label>
+                                        </fieldset>
+                                    </div>
+
+                                    <div class="options-container">
+                                        <span class="download-settings-label">Contents</span>
+                                        <fieldset id="download-export-contents-group" class="toggle" aria-label="Export contents">
+                                            <input type="radio" id="export-contents-full" name="export-contents" value="full" checked>
+                                            <label for="export-contents-full">Default</label>
+
+                                            <input type="radio" id="export-contents-skeleton" name="export-contents" value="skeleton">
+                                            <label for="export-contents-skeleton">Skeleton + Animations</label>
+                                        </fieldset>
+                                    </div>
                                 </div>
                             </div>
                         </div>

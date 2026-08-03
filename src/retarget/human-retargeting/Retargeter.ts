@@ -189,7 +189,7 @@ export class Retargeter {
   public applyChain (k: string): void {
     const src: RigItem[] = this.srcRig.chains[k]
     const tar: RigItem[] = this.tarRig.chains[k]
-    if (src === null || tar === null) {
+    if (!src || !tar || src.length === 0 || tar.length === 0) {
       console.warn('Retargeter: Missing source or target chain for key ', k)
       return
     }
@@ -218,7 +218,8 @@ export class Retargeter {
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    for (let i = 0; i < src.length; i++) {
+    // Chains can differ in length for some rigs, so iterate only shared indices.
+    for (let i = 0; i < Math.min(src.length, tar.length); i++) {
       // Get source swing / twist vectors
       // Pose exists in 3JS skeleton, so need to get its
       // Data through 3JS methods

@@ -3,14 +3,16 @@ import { type Bone } from 'three'
 /**
  * Classifies bones into categories that determine smoothing behavior.
  * - torso: spine, chest, neck — gets wider multi-ring smoothing
- * - limb: arms, legs — gets directional child-only smoothing
- * - extremity: hands, feet, fingers, toes — minimal smoothing
- * - other: root, head, unclassified — default smoothing
+ * - limb: arms, legs, head — gets directional child-only smoothing
+ * - extremity: hands, feet, fingers, toes — no smoothing (stay rigid)
+ * - root: the rig driver above every anatomical bone — deforms nothing itself
+ * - other: unclassified — default smoothing
  */
 export enum BoneCategory {
   Torso = 'torso',
   Limb = 'limb',
   Extremity = 'extremity',
+  Root = 'root',
   Other = 'other'
 }
 
@@ -37,6 +39,18 @@ export class BoneClassifier {
   }
 
   /**
+   * Returns true if the boundary is between two extremity bones
+   * (hand↔finger, finger↔finger, foot↔toe). These get no smoothing so
+   * small parts like fingers stay rigid instead of turning mushy.
+   * Requires both sides to be extremities, so the wrist/ankle
+   * (limb↔extremity) is not caught here and keeps its limb smoothing.
+   */
+  public is_extremity_boundary (bone_index_a: number, bone_index_b: number): boolean {
+    return this.get_category(bone_index_a) === BoneCategory.Extremity &&
+           this.get_category(bone_index_b) === BoneCategory.Extremity
+  }
+
+  /**
    * Returns true if the boundary between two bones should get
    * wider multi-ring smoothing (torso regions).
    */
@@ -59,11 +73,11 @@ export class BoneClassifier {
     const name = bone.name.toLowerCase()
 
 
-    // Extremity bones: hands, feet, fingers, toes
+    // Extremity bones: hands, feet, fingers, toes, eyes, ears
     const extremity_keywords = [
-      'hand', 'foot', 'toe', 'ball',
-      'thumb', 'index', 'middle', 'ring', 'pinky', 'finger',
-      'eye', 'tongue', 'wing', 'feather'
+      'hand', 'foot', 'feet', 'toe', 'ball',  
+      'thumb', 'index', 'middle', 'ring', 'pinky', 'finger', 'teeth',
+      'eye', 'tongue', 'wing', 'feather', 'leaf', 'ear', 'horn'
     ]
     if (extremity_keywords.some(kw => name.includes(kw))) {
       return BoneCategory.Extremity
@@ -71,9 +85,9 @@ export class BoneClassifier {
 
     // Limb bones: upper/lower arms, thighs, calves, shoulders
     const limb_keywords = [
-      'arm', 'upperarm', 'lowerarm', 'forearm', 'elbow', 'wrist',
-      'shoulder', 'clavicle', 'ankle', 'fin',
-      'thigh', 'calf', 'shin', 'knee', 'leg', 'upleg', 'lowleg'
+      'arm', 'upperarm', 'lowerarm', 'forearm', 'elbow', 'wrist', 'nose',
+      'shoulder', 'clavicle', 'ankle', 'fin', 'head', 'chin', 'jaw', 'mouth',
+      'thigh', 'calf', 'shin', 'knee', 'leg', 'upleg', 'lowleg', 'neck', 'humerus'
     ]
     if (limb_keywords.some(kw => name.includes(kw))) {
       return BoneCategory.Limb
@@ -83,11 +97,21 @@ export class BoneClassifier {
     // tails and feathers aren't technically torso, but we want
     // to give them more smoothing since they aren't as rigid
     const torso_keywords = [
-      'spine', 'chest', 'hips', 'pelvis', 'neck', 'torso', 'abdomen', 'body',
-      'tail', 'head', 'mouth', 'stomach', 'chin', 'teeth'
+      'spine', 'chest', 'hips', 'pelvis', 'torso', 'abdomen', 'body',
+      'tail', 'stomach', 'collar', 'scapula', 'ribcage'
     ]
     if (torso_keywords.some(kw => name.includes(kw))) {
       return BoneCategory.Torso
+    }
+
+    // Root: nothing anatomical in the name and no bone above it, so it drives or
+    // offsets the whole rig rather than deforming any part of the mesh. Checked
+    // last on purpose — a rig whose topmost bone IS a body part (hips as the
+    // root, common on Mixamo imports) keeps its anatomical category and the
+    // smoothing that goes with it
+    const parent_bone = bone.parent as Bone | null
+    if (parent_bone?.isBone !== true) {
+      return BoneCategory.Root
     }
 
     return BoneCategory.Other

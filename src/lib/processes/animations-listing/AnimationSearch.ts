@@ -14,6 +14,7 @@ export class AnimationSearch extends EventTarget {
   private readonly skeleton_type: SkeletonType
 
   private custom_event: CustomEvent | null = null
+  private show_selected_only: boolean = false
 
   constructor (filter_input_id: string, animation_list_container_id: string, theme_manager: ThemeManager, skeleton_type: SkeletonType) {
     super()
@@ -93,6 +94,12 @@ export class AnimationSearch extends EventTarget {
       const target = event.target as HTMLInputElement
       if (target?.type === 'checkbox') {
         this.save_current_checkbox_states()
+
+        // If in "selected only" mode, re-render to remove unchecked animations immediately
+        if (this.show_selected_only) {
+          const filter_text = this.filter_input?.value.toLowerCase() ?? ''
+          this.render_filtered_animations(filter_text)
+        }
       }
 
       // emit an event to notify other parts of the application that export options have changed
@@ -122,14 +129,24 @@ export class AnimationSearch extends EventTarget {
     return this.filtered_animations_list
   }
 
+  public set_show_selected_only (show_selected: boolean): void {
+    this.show_selected_only = show_selected
+    const filter_text = this.filter_input?.value.toLowerCase() ?? ''
+    this.render_filtered_animations(filter_text)
+  }
+
   private render_filtered_animations (filter_text: string): void {
     if (this.animation_list_container === null) {
       return
     }
 
-    // Filter animations based on search text
+    // Filter animations based on search text and selected-only mode
     this.filtered_animations_list = this.all_animations.filter(animation => {
-      return animation.name.toLowerCase().includes(filter_text)
+      const matches_search = animation.name.toLowerCase().includes(filter_text)
+      if (this.show_selected_only) {
+        return matches_search && animation.isChecked === true
+      }
+      return matches_search
     })
 
     // Clear and rebuild the animation list
@@ -166,7 +183,7 @@ export class AnimationSearch extends EventTarget {
 
       const preview_data_src_attribute = is_custom_animation
         ? ''
-        : ` data-src="../animpreviews/${preview_folder}/${theme_name}_${anim_name}.webm"`
+        : ` data-src="../animpreviews/${preview_folder}/${theme_name}_${anim_name}.mp4"`
 
       const custom_animation_badge_html = is_custom_animation
         ? '<span class="anim-custom-badge" title="Custom animation" aria-label="Custom animation">C</span>'
@@ -265,5 +282,43 @@ export class AnimationSearch extends EventTarget {
       this.filter_input.value = ''
       this.render_filtered_animations('')
     }
+  }
+
+  public toggle_select_all_animations (): void {
+    // Check if all animations are currently selected
+    const all_selected = this.all_animations.every(animation => animation.isChecked === true)
+
+    // Toggle the state: if all are selected, deselect all; otherwise, select all
+    const new_state = !all_selected
+    this.all_animations.forEach(animation => {
+      animation.isChecked = new_state
+    })
+
+    // Update all checkboxes in the UI
+    this.update_all_checkboxes_in_ui(new_state)
+
+    // Save the checkbox states to ensure they're synced with the UI
+    this.save_current_checkbox_states()
+
+    // If in "selected only" mode, re-render to update the displayed animations
+    if (this.show_selected_only) {
+      const filter_text = this.filter_input?.value.toLowerCase() ?? ''
+      this.render_filtered_animations(filter_text)
+    }
+
+    // Emit event to notify that export options have changed
+    this.custom_event = new CustomEvent('export-options-changed', { detail: { selectedAnimations: this.get_selected_animation_indices() } })
+    this.dispatchEvent(this.custom_event)
+  }
+
+  private update_all_checkboxes_in_ui (checked_state: boolean): void {
+    if (this.animation_list_container === null) {
+      return
+    }
+
+    const checkboxes = this.animation_list_container.querySelectorAll('input[type="checkbox"]')
+    checkboxes.forEach((checkbox) => {
+      (checkbox as HTMLInputElement).checked = checked_state
+    })
   }
 }

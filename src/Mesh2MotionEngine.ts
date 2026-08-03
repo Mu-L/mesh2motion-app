@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js'
+import { CustomTransformControls } from './lib/components/CustomTransformControls.ts'
 import type { CustomViewHelper } from './lib/CustomViewHelper.ts'
 
 import tippy from 'tippy.js'
@@ -22,10 +22,8 @@ import { StepWeightSkin } from './lib/processes/weight-skin/StepWeightSkin.ts'
 
 import { ProcessStep } from './lib/enums/ProcessStep.ts'
 import { type Bone, Group, Scene, type Skeleton, type Vector3 } from 'three'
-import type BoneTesterData from './lib/interfaces/BoneTesterData.ts'
 
 import { SkeletonType } from './lib/enums/SkeletonType.ts'
-import { RigConfig } from './lib/RigConfig.ts'
 
 import { CustomSkeletonHelper } from './lib/CustomSkeletonHelper.ts'
 import { EventListeners } from './lib/EventListeners.ts'
@@ -39,12 +37,14 @@ import { ModelCleanupUtility } from './lib/processes/load-model/ModelCleanupUtil
 import { SceneEnvironmentManager } from './lib/SceneEnvironmentManager.ts'
 import { CameraShake } from './lib/CameraShake.ts'
 import { DOMUtilities } from './lib/DOMUtilities.ts'
+import { PlatformManager } from './lib/PlatformManager.ts'
+import { NetworkStatusManager } from './lib/NetworkStatusManager.ts'
 
 export class Mesh2MotionEngine {
   public readonly camera = Generators.create_camera()
   public readonly renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
 
-  public readonly transform_controls: TransformControls = new TransformControls(this.camera, this.renderer.domElement)
+  public readonly transform_controls: CustomTransformControls = new CustomTransformControls(this.camera, this.renderer.domElement)
   public is_transform_controls_dragging: boolean = false
   public readonly transform_controls_hover_distance: number = 0.02 // distance to hover over bones to select them
   public is_model_gizmo_active: boolean = false
@@ -67,12 +67,11 @@ export class Mesh2MotionEngine {
 
   // for looking at specific bones
   public process_step: ProcessStep = ProcessStep.LoadModel
-  public skeleton_helper: CustomSkeletonHelper | THREE.SkeletonHelper | undefined = undefined
-  public use_custom_skeleton_helper: boolean = true // retargeting doesn't use this
+  public skeleton_helper: CustomSkeletonHelper | undefined = undefined
   public debugging_visual_object: Group = new Group()
 
   // when editing the skeleton, what type of mesh will we see
-  public mesh_preview_display_type: ModelPreviewDisplay = ModelPreviewDisplay.WeightPainted
+  public mesh_preview_display_type: ModelPreviewDisplay = ModelPreviewDisplay.Textured
   public transform_controls_type: TransformControlType = TransformControlType.Translation
   public transform_space_type: TransformSpace = TransformSpace.Global
 
@@ -83,6 +82,10 @@ export class Mesh2MotionEngine {
 
   constructor () {
     this.initialize_shared_dom_mounts()
+
+    // this will add a platform CSS file if we are running our desktop app
+    new PlatformManager().init();
+    new NetworkStatusManager();
 
     this.eventListeners = new EventListeners(this)
     // helps resolve requestAnimationFrame calling animate() with wrong context
@@ -169,10 +172,6 @@ export class Mesh2MotionEngine {
     this.scene_environment.set_zoom_limits(min_distance, max_distance)
   }
 
-  public set_custom_skeleton_helper_enabled (enabled: boolean): void {
-    this.use_custom_skeleton_helper = enabled
-  }
-
   public set_fog_enabled (enabled: boolean): void {
     this.scene_environment.set_fog_enabled(enabled)
   }
@@ -192,22 +191,46 @@ export class Mesh2MotionEngine {
 
   public regenerate_skeleton_helper (new_skeleton: Skeleton, helper_name = 'Skeleton Helper'): void {
     // if skeleton helper exists...remove it
-    if (this.skeleton_helper !== undefined) {
-      this.scene.remove(this.skeleton_helper)
-    }
+    this.dispose_skeleton_helper()
 
-    if (this.use_custom_skeleton_helper) {
-      this.skeleton_helper = new CustomSkeletonHelper(new_skeleton.bones[0], { linewidth: 4, color: 0x4e7d58 }) // line segment color
-    } else {
-      this.skeleton_helper = new THREE.SkeletonHelper(new_skeleton.bones[0])
-    }
-
+    // no color passed, so bone shapes and joints both use the bone category colors
+    this.skeleton_helper = new CustomSkeletonHelper(this.find_skeleton_root_bone(new_skeleton))
     this.skeleton_helper.name = helper_name
     this.scene.add(this.skeleton_helper)
   }
 
+  // Returns the topmost bone whose parent is not also tracked in the skeleton.
+  // Using bones[0] directly failed for custom rigs where the exporter stored
+  // bones in non-hierarchical order, causing getBoneList to miss every bone
+  // outside bones[0]'s subtree.
+  private find_skeleton_root_bone (skeleton: Skeleton): Bone {
+    const bone_set = new Set<Bone>(skeleton.bones)
+    for (const bone of skeleton.bones) {
+      if (!bone_set.has(bone.parent as Bone)) {
+        return bone
+      }
+    }
+    return skeleton.bones[0]
+  }
+
+  /**
+   * Takes the current skeleton helper out of the scene and releases its GPU
+   * resources. Skipping the dispose leaked a geometry, materials and an
+   * instance matrix buffer on every rebuild, and rebuilds happen on every
+   * skeleton edit undo/redo.
+   */
+  private dispose_skeleton_helper (): void {
+    if (this.skeleton_helper === undefined) {
+      return
+    }
+
+    this.scene.remove(this.skeleton_helper)
+    this.skeleton_helper.dispose()
+    this.skeleton_helper = undefined
+  }
+
   public sync_skeleton_helper_joint_visibility (): void {
-    if (!(this.skeleton_helper instanceof CustomSkeletonHelper)) {
+    if (this.skeleton_helper === undefined) {
       return
     }
 
@@ -379,9 +402,7 @@ export class Mesh2MotionEngine {
     }
     else if (this.process_step === ProcessStep.LoadSkeleton) {
       // if skeleton helper existed because we are going back to this
-      if (this.skeleton_helper !== undefined) {
-        this.scene.remove(this.skeleton_helper)
-      }
+      this.dispose_skeleton_helper()
 
       // need to change the texture display to normal material in
       this.mesh_preview_display_type = ModelPreviewDisplay.Textured
@@ -408,7 +429,6 @@ export class Mesh2MotionEngine {
 
       this.sync_skeleton_helper_joint_visibility()
 
-      this.mesh_preview_display_type = ModelPreviewDisplay.WeightPainted
       this.changed_model_preview_display(this.mesh_preview_display_type) // show weight painted mesh by default
     }
     else if (this.process_step === ProcessStep.BindPose) {
