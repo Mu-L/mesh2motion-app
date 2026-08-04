@@ -88,6 +88,7 @@ class RetargetModule {
       // animation service keeps track of shared data across classes
       AnimationRetargetService.getInstance().set_source_armature(source_armature)
       AnimationRetargetService.getInstance().set_skeleton_type(skeleton_type)
+      this.mesh2motion_engine.download_settings.update_download_settings_ui_visibility(skeleton_type)
 
       console.log('Source skeleton loaded:', skeleton_type)
 
@@ -140,9 +141,13 @@ class RetargetModule {
 
       // load the animation listing step and start it
       this.animation_listing_step = new RetargetAnimationListing(
-        this.mesh2motion_engine.get_theme_manager()
+        this.mesh2motion_engine.get_theme_manager(),
+        this.mesh2motion_engine.download_settings
       )
       this.animation_listing_step.begin()
+      this.mesh2motion_engine.download_settings.update_download_settings_ui_visibility(
+        AnimationRetargetService.getInstance().get_skeleton_type()
+      )
       this.mesh2motion_engine.show_animation_player(true)
 
       this.animation_listing_step.load_and_apply_default_animation_to_skinned_mesh()

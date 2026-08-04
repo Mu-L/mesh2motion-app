@@ -20,6 +20,12 @@ interface TopNavLinksConfig {
   github_icon_src: string
 }
 
+interface DownloadControlConfig {
+  export_button_id: string
+  download_icon_src: string
+  tooltip: string
+}
+
 export class DOMUtilities {
   static readonly top_nav_links: TopNavLinksConfig = {
     support_href: 'https://support.mesh2motion.org',
@@ -42,6 +48,12 @@ export class DOMUtilities {
     },
     floor_grid_enabled: true,
     solid_background_enabled: false
+  }
+
+  static readonly download_control_defaults: DownloadControlConfig = {
+    export_button_id: 'export-button',
+    download_icon_src: 'images/icons/download.svg',
+    tooltip: 'Exporting will combine all selected animations into a single downloadable file.'
   }
 
   /**
@@ -127,6 +139,114 @@ export class DOMUtilities {
         </div>
       </div>
     `
+  }
+
+  /**
+   * Render the shared export/download button, settings split toggle, and hidden link.
+   * Page-specific button IDs and icon paths are resolved from the current route.
+   */
+  static populate_download_control (mount: HTMLElement): void {
+    const control_config = DOMUtilities.get_download_control_config()
+
+    mount.innerHTML = `
+      <div class="download-combo">
+        <button id="${control_config.export_button_id}" data-tippy-content="${control_config.tooltip}">
+          <span class="button-icon-group">
+            <img src="${control_config.download_icon_src}" alt="Download" width="16" height="16" />
+            <span>Download <span id="animation-selection-count">0</span></span>
+          </span>
+        </button>
+
+        ${DOMUtilities.get_download_settings_markup()}
+      </div>
+
+      <a id="download-hidden-link" href="#" style="display:none"></a>
+    `
+  }
+
+  private static get_download_settings_markup (): string {
+    const dropdown_icon_src = DOMUtilities.get_download_settings_icon_src()
+
+    return `
+      <div id="download-settings-popup" class="download-settings-popup-container">
+        <button
+          id="download-settings-toggle"
+          class="download-split-toggle"
+          type="button"
+          aria-haspopup="dialog"
+          aria-expanded="false"
+          aria-controls="download-settings"
+          data-tippy-content="Download options"
+          aria-label="Open download options"
+        >
+          <img src="${dropdown_icon_src}" alt="dropdown" width="16" height="16" />
+        </button>
+
+        <div id="download-settings" class="download-settings-panel" role="dialog" aria-label="Download settings" hidden>
+          <span class="download-settings-header">Download Options</span>
+
+          <div id="download-bone-naming-section" class="options-container">
+            <span class="download-settings-label">Bone Names</span>
+            <fieldset id="download-bone-naming-group" class="toggle" aria-label="Bone naming structure">
+              <input type="radio" id="bone-naming-default" name="bone-naming-structure" value="default" checked>
+              <label for="bone-naming-default">Default</label>
+
+              <input type="radio" id="bone-naming-mixamo" name="bone-naming-structure" value="mixamo">
+              <label for="bone-naming-mixamo">Mixamo</label>
+            </fieldset>
+          </div>
+
+          <div class="options-container">
+            <span class="download-settings-label">Format</span>
+            <fieldset id="download-export-format-group" class="toggle" aria-label="Export format">
+              <input type="radio" id="export-format-glb" name="export-format" value="glb" checked>
+              <label for="export-format-glb">GLB</label>
+
+              <input type="radio" id="export-format-fbx" name="export-format" value="fbx">
+              <label for="export-format-fbx">FBX</label>
+            </fieldset>
+          </div>
+
+          <div class="options-container">
+            <span class="download-settings-label">Contents</span>
+            <fieldset id="download-export-contents-group" class="toggle" aria-label="Export contents">
+              <input type="radio" id="export-contents-full" name="export-contents" value="full" checked>
+              <label for="export-contents-full">Default</label>
+
+              <input type="radio" id="export-contents-skeleton" name="export-contents" value="skeleton">
+              <label for="export-contents-skeleton">Skeleton + Animations</label>
+            </fieldset>
+          </div>
+        </div>
+      </div>
+    `
+  }
+
+  private static get_download_control_config (): DownloadControlConfig {
+    const defaults = DOMUtilities.download_control_defaults
+
+    if (DOMUtilities.is_retarget_page()) {
+      return {
+        export_button_id: 'export-retargeting-button',
+        download_icon_src: '../images/icons/download.svg',
+        tooltip: defaults.tooltip
+      }
+    }
+
+    return defaults
+  }
+
+  private static get_download_settings_icon_src (): string {
+    if (DOMUtilities.is_retarget_page()) {
+      return '../images/icons/arrow-dropdown.svg'
+    }
+
+    return 'images/icons/arrow-dropdown.svg'
+  }
+
+  private static is_retarget_page (): boolean {
+    const path_name = window.location.pathname.toLowerCase()
+    return path_name.includes('/retarget/')
   }
 
   /**

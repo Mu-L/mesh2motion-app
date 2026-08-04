@@ -705,6 +705,11 @@ export class Mesh2MotionEngine {
       DOMUtilities.populate_animation_player(animation_player_mount)
     }
 
+    const download_control_mount = document.querySelector('#download-control-mount')
+    if (download_control_mount instanceof HTMLElement) {
+      DOMUtilities.populate_download_control(download_control_mount)
+    }
+
     const settings_dropdown_mount = document.querySelector('#settings-dropdown-mount')
     if (settings_dropdown_mount instanceof HTMLElement) {
       DOMUtilities.populate_settings_dropdown(settings_dropdown_mount)

@@ -8,6 +8,7 @@
 
         <!-- Stylesheets-->
         <link href="../styles.css" rel="stylesheet" crossorigin="anonymous" />
+        <link rel="stylesheet" href="../radio-button-group.css" crossorigin="anonymous" />
         <link rel="stylesheet" href="../animation-player.css" crossorigin="anonymous" />
         <link rel="stylesheet" href="../settings-dropdown.css" crossorigin="anonymous" />
         <link rel="stylesheet" href="./retarget.css" crossorigin="anonymous" />
@@ -193,16 +194,7 @@
                     <div style="display: flex; gap: 0.5rem;">
                         <button class="no-style-button" id="back_to_bone_map_button" >&#x2039; Back</button>
 
-                        <!-- I renamed the button ID since we need to process the animations differently -->
-                        <button id="export-retargeting-button" data-tippy-content="Exporting will combine all animations into a single GLB file.">
-                            <span class="button-icon-group">
-                                
-                                <img src="../images/icons/download.svg" alt="Help" width="16" height="16" />
-
-                                <span>Download <span id="animation-selection-count">0</span></span>
-                            </span>
-                        </button>
-                        <a id="download-hidden-link" href="#" style="display:none"></a>
+                        <div id="download-control-mount"></div>
 
                     </div>
 

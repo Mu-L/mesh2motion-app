@@ -7,6 +7,8 @@ import { type TransformedAnimationClipPair } from '../lib/processes/animations-l
 import { AnimationRetargetService } from './AnimationRetargetService.ts'
 import { StepExportRetargetedAnimations } from './steps/StepExportRetargetedAnimations.ts'
 import { UI } from '../lib/UI.ts'
+import { DownloadSettings } from '../lib/processes/export-to-file/DownloadSettings.ts'
+import { ModalDialog } from '../lib/ModalDialog.ts'
 
 /**
  * RetargetAnimationListing - Handles animation listing and playback specifically for retargeting workflow
@@ -17,6 +19,7 @@ export class RetargetAnimationListing extends EventTarget {
   private readonly animation_player: AnimationPlayer
   private readonly animation_loader: AnimationLoader = new AnimationLoader()
   private readonly step_export_retargeted_animations: StepExportRetargetedAnimations = new StepExportRetargetedAnimations()
+  private readonly download_settings: DownloadSettings
   private animation_clips_loaded: TransformedAnimationClipPair[] = []
   private animation_mixer: AnimationMixer = new AnimationMixer(new Object3D())
   private readonly ui: UI = UI.getInstance()
@@ -29,9 +32,10 @@ export class RetargetAnimationListing extends EventTarget {
 
   private export_button: HTMLButtonElement | null = null
 
-  constructor (theme_manager: ThemeManager) {
+  constructor (theme_manager: ThemeManager, download_settings: DownloadSettings) {
     super()
     this.theme_manager = theme_manager
+    this.download_settings = download_settings
     this.animation_player = new AnimationPlayer()
   }
 
@@ -233,7 +237,11 @@ export class RetargetAnimationListing extends EventTarget {
       )
 
       // configure the export out step with retargeting info
-      this.step_export_retargeted_animations.export('retargeted_animations')
+      this.step_export_retargeted_animations.export('retargeted_animations', this.download_settings)
+        .catch((error: unknown) => {
+          const error_message = error instanceof Error ? error.message : 'Unknown export error'
+          new ModalDialog('Retarget export failed', error_message).show()
+        })
     })
 
     // event listener for animation view mode tabs (Library vs Selected)

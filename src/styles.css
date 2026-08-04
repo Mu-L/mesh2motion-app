@@ -350,7 +350,8 @@ button:disabled {
     align-items: center;
 }
 
-.download-combo #export-button {
+.download-combo #export-button,
+.download-combo #export-retargeting-button {
     margin-right: 0;
     border-top-right-radius: 0;
     border-bottom-right-radius: 0;
