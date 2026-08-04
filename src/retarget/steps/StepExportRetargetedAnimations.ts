@@ -1,4 +1,4 @@
-import { Group, Scene, type AnimationClip, type Object3D, type SkinnedMesh } from 'three'
+import { Scene, type AnimationClip, type Object3D, type SkinnedMesh } from 'three'
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter'
 import { FBXExporter } from '@comfyorg/fbx-exporter-three'
 import { AnimationRetargetService } from '../AnimationRetargetService'
@@ -6,8 +6,6 @@ import { AnimationUtility } from '../../lib/processes/animations-listing/Animati
 import { type AnimationExportSelection } from '../../lib/processes/animations-listing/interfaces/AnimationExportSelection'
 import { type DownloadSettings, ExportContents, ExportFormat } from '../../lib/processes/export-to-file/DownloadSettings'
 import { ExportBoneNamingService } from '../../lib/processes/export-to-file/ExportBoneNamingService'
-
-const FBX_EXPORT_SCALE = 100
 
 export class StepExportRetargetedAnimations extends EventTarget {
   public animation_clips_to_export: AnimationClip[] = []
@@ -62,9 +60,6 @@ export class StepExportRetargetedAnimations extends EventTarget {
     download_settings: DownloadSettings
   ): Promise<void> {
     const export_scene = new Scene()
-    const export_root_group = new Group()
-    export_root_group.name = 'retarget-fbx-export-root'
-    export_root_group.scale.setScalar(FBX_EXPORT_SCALE)
 
     const restore_bone_names = ExportBoneNamingService.apply_download_settings(
       skinned_meshes,
@@ -81,18 +76,8 @@ export class StepExportRetargetedAnimations extends EventTarget {
 
     objects_to_export.forEach((object_to_export) => {
       original_parents.set(object_to_export, object_to_export.parent)
-
-      if (download_settings.export_format() === ExportFormat.FBX) {
-        export_root_group.add(object_to_export)
-        return
-      }
-
       export_scene.add(object_to_export)
     })
-
-    if (download_settings.export_format() === ExportFormat.FBX) {
-      export_scene.add(export_root_group)
-    }
 
     try {
       await this.export_scene(export_scene, animations_to_export, file_name, download_settings.export_format())
@@ -157,22 +142,10 @@ export class StepExportRetargetedAnimations extends EventTarget {
   }
 
   public async export_fbx (exported_scene: Scene, animations_to_export: AnimationClip[], file_name: string): Promise<void> {
-    const export_scene = new Group()
-    export_scene.name = 'retarget-fbx-export-root'
-    export_scene.scale.setScalar(FBX_EXPORT_SCALE)
-
-    const original_parents = new Map<Group | Scene, Group | Scene | null>()
-    const root_children = [...exported_scene.children]
-
-    root_children.forEach((child) => {
-      original_parents.set(child as Group | Scene, child.parent as Group | Scene | null)
-      export_scene.add(child)
-    })
-
-    export_scene.animations = animations_to_export
+    exported_scene.animations = animations_to_export
 
     try {
-      const result = await this.fbx_exporter.parseAsync(export_scene, {
+      const result = await this.fbx_exporter.parseAsync(exported_scene, {
         preset: 'unreal',
         includeAnimations: true,
         animations: animations_to_export,
@@ -182,16 +155,7 @@ export class StepExportRetargetedAnimations extends EventTarget {
 
       this.save_uint8_array(result, `${file_name}.fbx`)
     } finally {
-      export_scene.animations = []
-
-      root_children.forEach((child) => {
-        const original_parent = original_parents.get(child as Group | Scene)
-        if (original_parent !== null && original_parent !== undefined) {
-          original_parent.add(child)
-        } else {
-          exported_scene.add(child)
-        }
-      })
+      exported_scene.animations = []
     }
   }
 

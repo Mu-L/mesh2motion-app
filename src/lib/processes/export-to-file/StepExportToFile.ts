@@ -1,17 +1,11 @@
 import { UI } from '../../UI.ts'
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js'
 import { FBXExporter } from '@comfyorg/fbx-exporter-three'
-import { type AnimationClip, Group, Scene, type SkinnedMesh, type Object3D } from 'three'
+import { type AnimationClip, Scene, type SkinnedMesh, type Object3D } from 'three'
 import { type DownloadSettings, ExportContents, ExportFormat } from './DownloadSettings.ts'
 import { ExportBoneNamingService } from './ExportBoneNamingService.ts'
 import { AnimationUtility } from '../animations-listing/AnimationUtility.ts'
 import { type AnimationExportSelection } from '../animations-listing/interfaces/AnimationExportSelection.ts'
-
-// The FBX format generally uses centimeters as the unit of measurement, while three.js uses meters. 
-// To ensure compatibility with 3D software that expects FBX files to be in centimeters, 
-// we scale the exported objects down by a factor of 0.01 (1/100). This scaling is applied to 
-// the root group of the exported scene, which contains all the objects being exported.
-const FBX_EXPORT_SCALE = .01
 
 // Note: EventTarget is a built-in interface and do not need to import it
 export class StepExportToFile extends EventTarget {
@@ -55,12 +49,6 @@ export class StepExportToFile extends EventTarget {
 
     const export_scene = new Scene()
 
-    // Normal FBX exports use the unit of centimeters, but 
-    // three.js uses meters. Multiply everything by 100 to make it more compatible with 3d software
-    const export_root_group = new Group()
-    export_root_group.name = 'fbx-export-root'
-    export_root_group.scale.setScalar(FBX_EXPORT_SCALE)
-
     const export_clips = this.animation_clips_to_export.map((clip) => {
       const cloned_clip = clip.clone()
       // Make action names consistent by replacing any whitespace with underscores
@@ -94,17 +82,8 @@ export class StepExportToFile extends EventTarget {
     objects_to_export.forEach((object_to_export) => {
       // Save the original parent
       original_parents.set(object_to_export, object_to_export.parent)
-      if (download_settings.export_format() === ExportFormat.FBX) {
-        export_root_group.add(object_to_export)
-        return
-      }
-
       export_scene.add(object_to_export)
     })
-
-    if (download_settings.export_format() === ExportFormat.FBX) {
-      export_scene.add(export_root_group)
-    }
 
     console.log('SKINNED MESH DATA TO EXPORT:', skinned_meshes)
     console.log('animations to export', export_clips)
