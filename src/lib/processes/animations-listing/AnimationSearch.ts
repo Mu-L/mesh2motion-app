@@ -184,15 +184,18 @@ export class AnimationSearch extends EventTarget {
   }
 
   private get_mirror_toggle_label (mode: AnimationMirrorExportMode): string {
+
+    const base_label = 'Export Mirrored Animation: '
+
     if (mode === 'none') {
-      return 'Mirror mode: None'
+      return base_label + 'No'
     }
 
     if (mode === 'mirrored') {
-      return 'Mirror mode: Mirrored'
+      return base_label + 'Yes'
     }
 
-    return 'Mirror mode: Both'
+    return base_label + 'Original and Mirrored' // both options is only other choice
   }
 
   private sync_mirror_toggle_button_state (toggle_button: HTMLButtonElement, mode: AnimationMirrorExportMode): void {
