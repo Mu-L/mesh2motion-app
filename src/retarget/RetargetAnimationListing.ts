@@ -116,6 +116,7 @@ export class RetargetAnimationListing extends EventTarget {
     // if there are no animations selected disable the download button
 
     const animations_selected_count: number = this.animation_search?.get_selected_animation_indices().length ?? 0
+    const export_count: number = this.animation_search?.get_selected_export_animation_count() ?? 0
 
     if (this.export_button !== null) {
       this.export_button.disabled = animations_selected_count === 0
@@ -124,7 +125,7 @@ export class RetargetAnimationListing extends EventTarget {
     // update the count inside the export/download button
     const count_element = document.getElementById('animation-selection-count')
     if (count_element !== null) {
-      count_element.textContent = animations_selected_count.toString()
+      count_element.textContent = export_count.toString()
     }
   }
 
@@ -228,7 +229,7 @@ export class RetargetAnimationListing extends EventTarget {
       // send in all the selected animation clips for export
       this.step_export_retargeted_animations.set_animation_clips_to_export(
         this.animation_clips_loaded.map(clip => clip.display_animation_clip),
-        this.get_selected_animation_indices()
+        this.animation_search?.get_selected_animation_export_selections() ?? []
       )
 
       // configure the export out step with retargeting info
@@ -258,8 +259,9 @@ export class RetargetAnimationListing extends EventTarget {
         this.export_button.disabled = !is_any_checkbox_checked
       }
       // Update the count
-      if (this.animation_count_element != null) {
-        this.animation_count_element.textContent = this.get_selected_animation_indices().length.toString()
+      const count_element = document.getElementById('animation-selection-count')
+      if (count_element != null) {
+        count_element.textContent = (this.animation_search?.get_selected_export_animation_count() ?? 0).toString()
       }
     })
   }

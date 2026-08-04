@@ -20,9 +20,9 @@ export class AnimationSearch extends EventTarget {
   private static readonly mirror_mode_cycle: AnimationMirrorExportMode[] = ['none', 'mirrored', 'both']
 
   private static readonly mirror_mode_icons: Record<AnimationMirrorExportMode, string> = {
-    none: 'images/icons/mirror.svg',
-    mirrored: 'images/icons/mirror.svg',
-    both: 'images/icons/mirror-both.svg'
+    none: '/images/icons/mirror.svg',
+    mirrored: '/images/icons/mirror.svg',
+    both: '/images/icons/mirror-both.svg'
   }
 
   constructor (filter_input_id: string, animation_list_container_id: string, theme_manager: ThemeManager, skeleton_type: SkeletonType) {

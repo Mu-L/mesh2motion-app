@@ -1,16 +1,33 @@
 import { type Scene, type AnimationClip } from 'three'
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter'
 import { AnimationRetargetService } from '../AnimationRetargetService'
+import { AnimationUtility } from '../../lib/processes/animations-listing/AnimationUtility'
+import { type AnimationExportSelection } from '../../lib/processes/animations-listing/interfaces/AnimationExportSelection'
 
 export class StepExportRetargetedAnimations extends EventTarget {
   public animation_clips_to_export: AnimationClip[] = []
 
-  public set_animation_clips_to_export (all_animations_clips: AnimationClip[], animation_checkboxes: number[]): void {
+  public set_animation_clips_to_export (all_animations_clips: AnimationClip[], export_selections: AnimationExportSelection[]): void {
     this.animation_clips_to_export = []
-    animation_checkboxes.forEach((indx) => {
-      const original_clip: AnimationClip = all_animations_clips[indx]
-      const cloned_clip: AnimationClip = original_clip.clone()
-      this.animation_clips_to_export.push(cloned_clip)
+    export_selections.forEach((selection) => {
+      const source_clip: AnimationClip | undefined = all_animations_clips[selection.animation_index]
+      if (source_clip === undefined) {
+        return
+      }
+
+      if (selection.mirror_export_mode === 'none') {
+        this.animation_clips_to_export.push(source_clip.clone())
+        return
+      }
+
+      if (selection.mirror_export_mode === 'mirrored') {
+        this.animation_clips_to_export.push(AnimationUtility.create_mirrored_clip(source_clip))
+        return
+      }
+
+      // Export both normal and mirrored variants.
+      this.animation_clips_to_export.push(source_clip.clone())
+      this.animation_clips_to_export.push(AnimationUtility.create_mirrored_clip(source_clip))
     })
   }
 

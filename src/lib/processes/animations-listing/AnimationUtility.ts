@@ -33,6 +33,21 @@ export class AnimationUtility {
     })
   }
 
+  static create_mirrored_clip (source_clip: AnimationClip): AnimationClip {
+    const mirrored_clip = AnimationUtility.deep_clone_animation_clip(source_clip)
+    mirrored_clip.name = `${mirrored_clip.name}_mirror`
+
+    AnimationUtility.apply_animation_mirroring([
+      {
+        original_animation_clip: AnimationUtility.deep_clone_animation_clip(mirrored_clip),
+        display_animation_clip: mirrored_clip,
+        metadata: { source_type: 'default-library', tags: [] }
+      }
+    ])
+
+    return mirrored_clip
+  }
+
   /// Removes position tracks from animation clips, keeping only rotation tracks.
   /// @param animation_clips - The animation clips to modify.
   /// @param preserve_root_position - Whether to keep the root position track.

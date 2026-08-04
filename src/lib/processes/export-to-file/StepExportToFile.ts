@@ -25,32 +25,14 @@ export class StepExportToFile extends EventTarget {
       }
 
       if (selection.mirror_export_mode === 'mirrored') {
-        this.animation_clips_to_export.push(this.create_mirrored_clip(source_clip))
+        this.animation_clips_to_export.push(AnimationUtility.create_mirrored_clip(source_clip))
         return
       }
 
       // Export both normal and mirrored variants.
       this.animation_clips_to_export.push(source_clip.clone())
-      this.animation_clips_to_export.push(this.create_mirrored_clip(source_clip))
+      this.animation_clips_to_export.push(AnimationUtility.create_mirrored_clip(source_clip))
     })
-  }
-
-  private create_mirrored_clip (source_clip: AnimationClip): AnimationClip {
-    const mirrored_clip = AnimationUtility.deep_clone_animation_clip(source_clip)
-    mirrored_clip.name = `${mirrored_clip.name}_mirror`
-
-    AnimationUtility.apply_animation_mirroring([
-      {
-        original_animation_clip: AnimationUtility.deep_clone_animation_clip(mirrored_clip),
-        display_animation_clip: mirrored_clip,
-        metadata: {
-          source_type: 'default-library',
-          tags: []
-        }
-      }
-    ])
-
-    return mirrored_clip
   }
 
   public export (
