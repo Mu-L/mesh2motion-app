@@ -1,15 +1,23 @@
 import { UI } from '../../UI.ts'
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js'
-import { type AnimationClip, Scene, type SkinnedMesh, type Object3D } from 'three'
-import { type DownloadSettings, ExportContents } from './DownloadSettings.ts'
+import { FBXExporter } from '@comfyorg/fbx-exporter-three'
+import { type AnimationClip, Group, Scene, type SkinnedMesh, type Object3D } from 'three'
+import { type DownloadSettings, ExportContents, ExportFormat } from './DownloadSettings.ts'
 import { ExportBoneNamingService } from './ExportBoneNamingService.ts'
 import { AnimationUtility } from '../animations-listing/AnimationUtility.ts'
 import { type AnimationExportSelection } from '../animations-listing/interfaces/AnimationExportSelection.ts'
+
+// The FBX format generally uses centimeters as the unit of measurement, while three.js uses meters. 
+// To ensure compatibility with 3D software that expects FBX files to be in centimeters, 
+// we scale the exported objects down by a factor of 0.01 (1/100). This scaling is applied to 
+// the root group of the exported scene, which contains all the objects being exported.
+const FBX_EXPORT_SCALE = .01
 
 // Note: EventTarget is a built-in interface and do not need to import it
 export class StepExportToFile extends EventTarget {
   private readonly ui: UI = UI.getInstance()
   private animation_clips_to_export: AnimationClip[] = []
+  private readonly fbx_exporter: FBXExporter = new FBXExporter()
 
   public set_animation_clips_to_export (all_animations_clips: AnimationClip[], export_selections: AnimationExportSelection[]): void {
     this.animation_clips_to_export = []
@@ -38,14 +46,20 @@ export class StepExportToFile extends EventTarget {
   public export (
     skinned_meshes: SkinnedMesh[], 
     filename: string = 'exported_model',
-    download_settings: DownloadSettings): void {
+    download_settings: DownloadSettings): Promise<void> {
 
     if (this.animation_clips_to_export.length === 0) {
       console.log('ERROR: No animation clips added to export')
-      return
+      return Promise.reject(new Error('No animation clips added to export'))
     }
 
     const export_scene = new Scene()
+
+    // Normal FBX exports use the unit of centimeters, but 
+    // three.js uses meters. Multiply everything by 100 to make it more compatible with 3d software
+    const export_root_group = new Group()
+    export_root_group.name = 'fbx-export-root'
+    export_root_group.scale.setScalar(FBX_EXPORT_SCALE)
 
     const export_clips = this.animation_clips_to_export.map((clip) => {
       const cloned_clip = clip.clone()
@@ -80,13 +94,22 @@ export class StepExportToFile extends EventTarget {
     objects_to_export.forEach((object_to_export) => {
       // Save the original parent
       original_parents.set(object_to_export, object_to_export.parent)
+      if (download_settings.export_format() === ExportFormat.FBX) {
+        export_root_group.add(object_to_export)
+        return
+      }
+
       export_scene.add(object_to_export)
     })
+
+    if (download_settings.export_format() === ExportFormat.FBX) {
+      export_scene.add(export_root_group)
+    }
 
     console.log('SKINNED MESH DATA TO EXPORT:', skinned_meshes)
     console.log('animations to export', export_clips)
 
-    this.export_glb(export_scene, export_clips, filename)
+    return this.export_scene(export_scene, export_clips, filename, download_settings.export_format())
       .then(() => {
         // Move the exported objects back to their original parents
         objects_to_export.forEach((exported_object) => {
@@ -103,10 +126,26 @@ export class StepExportToFile extends EventTarget {
         restore_bone_names()
       })
       .catch((error) => {
-        console.log('Error exporting GLB:', error)
+        console.log('Error exporting file:', error)
 
         restore_bone_names()
+
+        throw error
       })
+  }
+
+  public async export_scene (
+    exported_scene: Scene,
+    animations_to_export: AnimationClip[],
+    file_name: string,
+    export_format: ExportFormat
+  ): Promise<void> {
+    if (export_format === ExportFormat.FBX) {
+      await this.export_fbx(exported_scene, animations_to_export, file_name)
+      return
+    }
+
+    await this.export_glb(exported_scene, animations_to_export, file_name)
   }
 
   public async export_glb (exported_scene: Scene, animations_to_export: AnimationClip[], file_name: string): Promise<void> {
@@ -141,6 +180,24 @@ export class StepExportToFile extends EventTarget {
     })
   }
 
+  public async export_fbx (exported_scene: Scene, animations_to_export: AnimationClip[], file_name: string): Promise<void> {
+    exported_scene.animations = animations_to_export
+
+    try {
+      const result = await this.fbx_exporter.parseAsync(exported_scene, {
+        preset: 'unreal',
+        includeAnimations: true,
+        animations: animations_to_export,
+        onlyVisible: false,
+        embedTextures: true
+      })
+
+      this.save_uint8_array(result, `${file_name}.fbx`)
+    } finally {
+      exported_scene.animations = []
+    }
+  }
+
   private save_file (blob: Blob, filename: string): void {
     if (this.ui.dom_export_button_hidden_link != null) {
       this.ui.dom_export_button_hidden_link.href = URL.createObjectURL(blob)
@@ -153,6 +210,11 @@ export class StepExportToFile extends EventTarget {
 
   // used for GLB to turn content into a byte array for saving
   private save_array_buffer (buffer: ArrayBuffer, filename: string): void {
+    this.save_file(new Blob([buffer], { type: 'application/octet-stream' }), filename)
+  }
+
+  // used for FBX exporter to turn content into a byte array for saving
+  private save_uint8_array (buffer: Uint8Array, filename: string): void {
     this.save_file(new Blob([buffer], { type: 'application/octet-stream' }), filename)
   }
 }

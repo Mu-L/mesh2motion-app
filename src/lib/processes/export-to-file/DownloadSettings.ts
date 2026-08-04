@@ -10,9 +10,15 @@ export enum ExportContents {
   Skeleton = 'skeleton'
 }
 
+export enum ExportFormat {
+  GLB = 'glb',
+  FBX = 'fbx'
+}
+
 export class DownloadSettings extends EventTarget {
   private selected_bone_naming_structure: BoneNamingStructure = BoneNamingStructure.Default
   private selected_export_contents: ExportContents = ExportContents.Full
+  private selected_export_format: ExportFormat = ExportFormat.GLB
   private dom_download_settings_popup: HTMLElement | null = null
   private dom_download_settings_toggle: HTMLButtonElement | null = null
   private dom_download_settings_panel: HTMLElement | null = null
@@ -21,6 +27,8 @@ export class DownloadSettings extends EventTarget {
   private dom_bone_naming_default_radio: HTMLInputElement | null = null
   private dom_export_contents_group: HTMLElement | null = null
   private dom_export_contents_full_radio: HTMLInputElement | null = null
+  private dom_export_format_group: HTMLElement | null = null
+  private dom_export_format_glb_radio: HTMLInputElement | null = null
 
   constructor () {
     super()
@@ -36,6 +44,10 @@ export class DownloadSettings extends EventTarget {
     return this.selected_export_contents
   }
 
+  public export_format (): ExportFormat {
+    return this.selected_export_format
+  }
+
   // The download settings popup is available for all skeleton types. The bone naming
   // options only apply to the human skeleton, so that section is shown/hidden here while
   // the export contents options remain available regardless of skeleton type.
@@ -49,6 +61,11 @@ export class DownloadSettings extends EventTarget {
     this.selected_export_contents = ExportContents.Full
     if (this.dom_export_contents_full_radio !== null) {
       this.dom_export_contents_full_radio.checked = true
+    }
+
+    this.selected_export_format = ExportFormat.GLB
+    if (this.dom_export_format_glb_radio !== null) {
+      this.dom_export_format_glb_radio.checked = true
     }
 
     const is_human_skeleton = skeleton_type === SkeletonType.Human
@@ -68,6 +85,8 @@ export class DownloadSettings extends EventTarget {
     this.dom_bone_naming_default_radio = document.querySelector('#bone-naming-default')
     this.dom_export_contents_group = document.querySelector('#download-export-contents-group')
     this.dom_export_contents_full_radio = document.querySelector('#export-contents-full')
+    this.dom_export_format_group = document.querySelector('#download-export-format-group')
+    this.dom_export_format_glb_radio = document.querySelector('#export-format-glb')
   }
 
   private add_event_listeners (): void {
@@ -127,6 +146,23 @@ export class DownloadSettings extends EventTarget {
 
       this.dispatchEvent(new CustomEvent('export-contents-changed', {
         detail: { exportContents: this.selected_export_contents }
+      }))
+    })
+
+    this.dom_export_format_group?.addEventListener('change', (event: Event) => {
+      const selected_radio = event.target as HTMLInputElement | null
+
+      if (selected_radio === null || selected_radio.name !== 'export-format') {
+        return
+      }
+
+      this.selected_export_format =
+        selected_radio.value === ExportFormat.FBX
+          ? ExportFormat.FBX
+          : ExportFormat.GLB
+
+      this.dispatchEvent(new CustomEvent('export-format-changed', {
+        detail: { exportFormat: this.selected_export_format }
       }))
     })
   }

@@ -6,6 +6,7 @@ import { Utility } from './Utilities'
 import { ModelCleanupUtility } from './processes/load-model/ModelCleanupUtility'
 import { ModelAnalysisReport } from './processes/load-model/ModelAnalysisReport'
 import { DownloadSuccessDialog } from './components/download-success/DownloadSuccessDialog'
+import { ModalDialog } from './ModalDialog.ts'
 import { type Bone, type Material, type MeshBasicMaterial, type MeshPhongMaterial, type MeshStandardMaterial } from 'three'
 
 export class EventListeners {
@@ -258,12 +259,18 @@ export class EventListeners {
       const export_selections = this.bootstrap.animations_listing_step.get_animation_export_selections()
 
       this.bootstrap.file_export_step.set_animation_clips_to_export(all_clips, export_selections)
-      this.bootstrap.file_export_step.export(
+      void this.bootstrap.file_export_step.export(
         this.bootstrap.animations_listing_step.active_skinned_meshes(),
         'exported-model',
         this.bootstrap.download_settings
       )
-      new DownloadSuccessDialog().show()
+        .then(() => {
+          new DownloadSuccessDialog().show()
+        })
+        .catch((error: unknown) => {
+          const error_message = error instanceof Error ? error.message : 'Failed to export file.'
+          new ModalDialog('Export failed', error_message).show()
+        })
     })
 
     // going back to edit skeleton step after skinning
