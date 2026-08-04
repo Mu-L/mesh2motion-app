@@ -2,7 +2,7 @@ import { UI } from '../../UI.ts'
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js'
 import { FBXExporter } from '@comfyorg/fbx-exporter-three'
 import { type AnimationClip, Scene, type SkinnedMesh, type Object3D } from 'three'
-import { type DownloadSettings, ExportContents, ExportFormat } from './DownloadSettings.ts'
+import { type DownloadSettings, ExportContents, ExportFormat, type FbxExportPreset } from './DownloadSettings.ts'
 import { ExportBoneNamingService } from './ExportBoneNamingService.ts'
 import { AnimationUtility } from '../animations-listing/AnimationUtility.ts'
 import { type AnimationExportSelection } from '../animations-listing/interfaces/AnimationExportSelection.ts'
@@ -88,7 +88,13 @@ export class StepExportToFile extends EventTarget {
     console.log('SKINNED MESH DATA TO EXPORT:', skinned_meshes)
     console.log('animations to export', export_clips)
 
-    return this.export_scene(export_scene, export_clips, filename, download_settings.export_format())
+    return this.export_scene(
+      export_scene,
+      export_clips,
+      filename,
+      download_settings.export_format(),
+      download_settings.fbx_export_preset()
+    )
       .then(() => {
         // Move the exported objects back to their original parents
         objects_to_export.forEach((exported_object) => {
@@ -117,10 +123,11 @@ export class StepExportToFile extends EventTarget {
     exported_scene: Scene,
     animations_to_export: AnimationClip[],
     file_name: string,
-    export_format: ExportFormat
+    export_format: ExportFormat,
+    fbx_export_preset: FbxExportPreset
   ): Promise<void> {
     if (export_format === ExportFormat.FBX) {
-      await this.export_fbx(exported_scene, animations_to_export, file_name)
+      await this.export_fbx(exported_scene, animations_to_export, file_name, fbx_export_preset)
       return
     }
 
@@ -159,12 +166,17 @@ export class StepExportToFile extends EventTarget {
     })
   }
 
-  public async export_fbx (exported_scene: Scene, animations_to_export: AnimationClip[], file_name: string): Promise<void> {
+  public async export_fbx (
+    exported_scene: Scene,
+    animations_to_export: AnimationClip[],
+    file_name: string,
+    fbx_export_preset: FbxExportPreset
+  ): Promise<void> {
     exported_scene.animations = animations_to_export
 
     try {
       const result = await this.fbx_exporter.parseAsync(exported_scene, {
-        preset: 'unreal',
+        preset: fbx_export_preset,
         includeAnimations: true,
         animations: animations_to_export,
         onlyVisible: false,

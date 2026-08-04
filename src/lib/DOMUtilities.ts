@@ -203,7 +203,27 @@ export class DOMUtilities {
               <label for="export-format-glb">GLB</label>
 
               <input type="radio" id="export-format-fbx" name="export-format" value="fbx">
-              <label for="export-format-fbx">FBX</label>
+              <label for="export-format-fbx">FBX 7.4</label>
+            </fieldset>
+          </div>
+
+          <div id="download-fbx-preset-section" class="options-container" hidden>
+            <span class="download-settings-label">FBX Preset</span>
+            <fieldset id="download-fbx-preset-group" class="toggle" aria-label="FBX export preset">
+              <input type="radio" id="fbx-preset-unreal" name="fbx-export-preset" value="unreal">
+              <label for="fbx-preset-unreal">Unreal</label>
+
+              <input type="radio" id="fbx-preset-blender" name="fbx-export-preset" value="blender" checked>
+              <label for="fbx-preset-blender">Blender</label>
+
+              <input type="radio" id="fbx-preset-threejs" name="fbx-export-preset" value="threejs">
+              <label for="fbx-preset-threejs">Three.js</label>
+
+              <input type="radio" id="fbx-preset-unity" name="fbx-export-preset" value="unity">
+              <label for="fbx-preset-unity">Unity</label>
+
+              <input type="radio" id="fbx-preset-maya" name="fbx-export-preset" value="maya">
+              <label for="fbx-preset-maya">Maya</label>
             </fieldset>
           </div>
 

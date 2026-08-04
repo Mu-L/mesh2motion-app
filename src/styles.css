@@ -385,9 +385,11 @@ button:disabled {
     z-index: 1000;
     display: inline-flex;
     flex-direction: column;
-    align-items: center;
+    align-items: stretch;
     gap: 1.5rem;
     padding: 1rem;
+    min-width: 16rem;
+    max-width: 19rem;
     border: 1px solid var(--bg-tertiary);
     border-radius: 6px;
     background: color-mix(in srgb, var(--bg-primary) 90%, black);
@@ -414,9 +416,13 @@ button:disabled {
 .options-container {
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: stretch;
     gap: 0.5rem;
     padding: 0;
+}
+
+.options-container[hidden] {
+    display: none;
 }
 
 #download-bone-naming-group {
@@ -426,6 +432,26 @@ button:disabled {
 #download-bone-naming-group input + label {
     font-size: 0.9rem;
     padding: 0.3rem 0.6rem;
+}
+
+#download-fbx-preset-group {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.35rem;
+}
+
+#download-fbx-preset-group input + label {
+    justify-content: center;
+    border: solid 2px var(--radio-button-group-bg);
+    border-radius: 6px;
+    padding: 0.35rem 0.5rem;
+    font-size: 0.95rem;
+}
+
+#download-fbx-preset-group input + label:first-of-type,
+#download-fbx-preset-group input + label:last-of-type {
+    border: solid 2px var(--radio-button-group-bg);
+    border-radius: 6px;
 }
 
 

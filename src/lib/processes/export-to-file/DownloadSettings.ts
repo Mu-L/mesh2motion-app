@@ -15,10 +15,19 @@ export enum ExportFormat {
   FBX = 'fbx'
 }
 
+export enum FbxExportPreset {
+  Unreal = 'unreal',
+  Blender = 'blender',
+  ThreeJS = 'threejs',
+  Unity = 'unity',
+  Maya = 'maya'
+}
+
 export class DownloadSettings extends EventTarget {
   private selected_bone_naming_structure: BoneNamingStructure = BoneNamingStructure.Default
   private selected_export_contents: ExportContents = ExportContents.Full
   private selected_export_format: ExportFormat = ExportFormat.GLB
+  private selected_fbx_export_preset: FbxExportPreset = FbxExportPreset.Blender
   private dom_download_settings_popup: HTMLElement | null = null
   private dom_download_settings_toggle: HTMLButtonElement | null = null
   private dom_download_settings_panel: HTMLElement | null = null
@@ -29,10 +38,14 @@ export class DownloadSettings extends EventTarget {
   private dom_export_contents_full_radio: HTMLInputElement | null = null
   private dom_export_format_group: HTMLElement | null = null
   private dom_export_format_glb_radio: HTMLInputElement | null = null
+  private dom_fbx_preset_section: HTMLElement | null = null
+  private dom_fbx_preset_group: HTMLElement | null = null
+  private dom_fbx_preset_blender_radio: HTMLInputElement | null = null
 
   constructor () {
     super()
     this.initialize_dom_elements()
+    this.update_fbx_preset_ui_visibility()
     this.add_event_listeners()
   }
 
@@ -46,6 +59,10 @@ export class DownloadSettings extends EventTarget {
 
   public export_format (): ExportFormat {
     return this.selected_export_format
+  }
+
+  public fbx_export_preset (): FbxExportPreset {
+    return this.selected_fbx_export_preset
   }
 
   // The download settings popup is available for all skeleton types. The bone naming
@@ -68,12 +85,19 @@ export class DownloadSettings extends EventTarget {
       this.dom_export_format_glb_radio.checked = true
     }
 
+    this.selected_fbx_export_preset = FbxExportPreset.Blender
+    if (this.dom_fbx_preset_blender_radio !== null) {
+      this.dom_fbx_preset_blender_radio.checked = true
+    }
+
     const is_human_skeleton = skeleton_type === SkeletonType.Human
 
     // Only the bone naming section is human-only; the popup itself is always available.
     if (this.dom_bone_naming_section !== null) {
       this.dom_bone_naming_section.style.display = is_human_skeleton ? '' : 'none'
     }
+
+    this.update_fbx_preset_ui_visibility()
   }
 
   private initialize_dom_elements (): void {
@@ -87,6 +111,9 @@ export class DownloadSettings extends EventTarget {
     this.dom_export_contents_full_radio = document.querySelector('#export-contents-full')
     this.dom_export_format_group = document.querySelector('#download-export-format-group')
     this.dom_export_format_glb_radio = document.querySelector('#export-format-glb')
+    this.dom_fbx_preset_section = document.querySelector('#download-fbx-preset-section')
+    this.dom_fbx_preset_group = document.querySelector('#download-fbx-preset-group')
+    this.dom_fbx_preset_blender_radio = document.querySelector('#fbx-preset-blender')
   }
 
   private add_event_listeners (): void {
@@ -164,7 +191,48 @@ export class DownloadSettings extends EventTarget {
       this.dispatchEvent(new CustomEvent('export-format-changed', {
         detail: { exportFormat: this.selected_export_format }
       }))
+
+      this.update_fbx_preset_ui_visibility()
     })
+
+    this.dom_fbx_preset_group?.addEventListener('change', (event: Event) => {
+      const selected_radio = event.target as HTMLInputElement | null
+
+      if (selected_radio === null || selected_radio.name !== 'fbx-export-preset') {
+        return
+      }
+
+      switch (selected_radio.value) {
+        case FbxExportPreset.Unreal:
+          this.selected_fbx_export_preset = FbxExportPreset.Unreal
+          break
+        case FbxExportPreset.ThreeJS:
+          this.selected_fbx_export_preset = FbxExportPreset.ThreeJS
+          break
+        case FbxExportPreset.Unity:
+          this.selected_fbx_export_preset = FbxExportPreset.Unity
+          break
+        case FbxExportPreset.Maya:
+          this.selected_fbx_export_preset = FbxExportPreset.Maya
+          break
+        default:
+          this.selected_fbx_export_preset = FbxExportPreset.Blender
+          break
+      }
+
+      this.dispatchEvent(new CustomEvent('fbx-export-preset-changed', {
+        detail: { fbxExportPreset: this.selected_fbx_export_preset }
+      }))
+    })
+  }
+
+  private update_fbx_preset_ui_visibility (): void {
+    if (this.dom_fbx_preset_section === null) {
+      return
+    }
+
+    const should_show_fbx_preset = this.selected_export_format === ExportFormat.FBX
+    this.dom_fbx_preset_section.hidden = !should_show_fbx_preset
   }
 
   private set_popup_visibility (is_visible: boolean): void {
