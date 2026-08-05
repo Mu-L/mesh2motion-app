@@ -6,6 +6,7 @@ import { AnimationUtility } from '../../lib/processes/animations-listing/Animati
 import { type AnimationExportSelection } from '../../lib/processes/animations-listing/interfaces/AnimationExportSelection'
 import { type DownloadSettings, ExportContents, ExportFormat, type FbxExportPreset } from '../../lib/processes/export-to-file/DownloadSettings'
 import { ExportBoneNamingService } from '../../lib/processes/export-to-file/ExportBoneNamingService'
+import { FbxTextureCompatibilityService } from '../../lib/processes/export-to-file/FbxTextureCompatibilityService'
 
 export class StepExportRetargetedAnimations extends EventTarget {
   public animation_clips_to_export: AnimationClip[] = []
@@ -155,6 +156,7 @@ export class StepExportRetargetedAnimations extends EventTarget {
     fbx_export_preset: FbxExportPreset
   ): Promise<void> {
     exported_scene.animations = animations_to_export
+    const restore_texture_settings = FbxTextureCompatibilityService.apply_flip_y_compatibility_for_fbx(exported_scene)
 
     try {
       const result = await this.fbx_exporter.parseAsync(exported_scene, {
@@ -167,6 +169,7 @@ export class StepExportRetargetedAnimations extends EventTarget {
 
       this.save_uint8_array(result, `${file_name}.fbx`)
     } finally {
+      restore_texture_settings()
       exported_scene.animations = []
     }
   }

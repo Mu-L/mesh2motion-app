@@ -6,6 +6,7 @@ import { type DownloadSettings, ExportContents, ExportFormat, type FbxExportPres
 import { ExportBoneNamingService } from './ExportBoneNamingService.ts'
 import { AnimationUtility } from '../animations-listing/AnimationUtility.ts'
 import { type AnimationExportSelection } from '../animations-listing/interfaces/AnimationExportSelection.ts'
+import { FbxTextureCompatibilityService } from './FbxTextureCompatibilityService.ts'
 
 // Note: EventTarget is a built-in interface and do not need to import it
 export class StepExportToFile extends EventTarget {
@@ -173,6 +174,7 @@ export class StepExportToFile extends EventTarget {
     fbx_export_preset: FbxExportPreset
   ): Promise<void> {
     exported_scene.animations = animations_to_export
+    const restore_texture_settings = FbxTextureCompatibilityService.apply_flip_y_compatibility_for_fbx(exported_scene)
 
     try {
       const result = await this.fbx_exporter.parseAsync(exported_scene, {
@@ -185,6 +187,7 @@ export class StepExportToFile extends EventTarget {
 
       this.save_uint8_array(result, `${file_name}.fbx`)
     } finally {
+      restore_texture_settings()
       exported_scene.animations = []
     }
   }
