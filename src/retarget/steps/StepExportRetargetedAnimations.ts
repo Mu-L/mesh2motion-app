@@ -156,7 +156,7 @@ export class StepExportRetargetedAnimations extends EventTarget {
     fbx_export_preset: FbxExportPreset
   ): Promise<void> {
     exported_scene.animations = animations_to_export
-    const restore_texture_settings = FbxTextureCompatibilityService.apply_flip_y_compatibility_for_fbx(exported_scene)
+    const texture_compatibility_session = new FbxTextureCompatibilityService(exported_scene)
 
     try {
       const result = await this.fbx_exporter.parseAsync(exported_scene, {
@@ -169,7 +169,7 @@ export class StepExportRetargetedAnimations extends EventTarget {
 
       this.save_uint8_array(result, `${file_name}.fbx`)
     } finally {
-      restore_texture_settings()
+      texture_compatibility_session.restore()
       exported_scene.animations = []
     }
   }
