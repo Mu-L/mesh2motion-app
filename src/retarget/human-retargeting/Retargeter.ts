@@ -114,6 +114,9 @@ export class Retargeter {
     // Storage for keyframe data per bone
     const bone_data = new Map<string, { times: number[], positions: number[], quaternions: number[] }>()
 
+    // Only one bone carries root motion. Figure out which one before we sample
+    const root_motion_bone_name: string | null = this.root_motion_bone_name()
+
     // Initialize storage for each bone in the target skeleton
     this.tarRig.skel.bones.forEach((bone) => {
       bone_data.set(bone.name, {
@@ -161,10 +164,8 @@ export class Retargeter {
       )
       tracks.push(quat_track)
 
-      // add root motion track
-      // TODO: this needs to be a bit smarter to know which track
-      // has the root bone (hard-coding where Mixamo stores root motion)
-      if (bone_name.toLowerCase().trim().includes('hips')) {
+      // add root motion track for the one bone that actually gets translated
+      if (bone_name === root_motion_bone_name) {
         const pos_track = new THREE.VectorKeyframeTrack(
           `${bone_name}.position`,
           data.times,
@@ -177,6 +178,39 @@ export class Retargeter {
     console.log(`Baked ${frame_count} frames for ${this.tarRig.skel.bones.length} bones (${tracks.length} tracks)`)
 
     return tracks
+  }
+
+  /**
+   * Find the target bone that carries root motion.
+   * The pelvis chain is the only chain that gets translated (see applyScaledTranslation),
+   * so whatever bone the user mapped there is the one with position data worth baking.
+   * Falls back to name matching for rigs that never got a pelvis mapping.
+   * @returns bone name, or null if we cannot figure one out
+   */
+  private root_motion_bone_name (): string | null {
+
+    // Check if the pelvis chain exists and has bones mapped
+    const pelvis_chain: RigItem[] = this.tarRig.chains.pelvis
+    if (pelvis_chain !== undefined && pelvis_chain.length > 0) {
+      const bone: THREE.Bone | undefined = this.tarRig.skel.bones[pelvis_chain[0].idx]
+      if (bone !== undefined) {
+        return bone.name
+      }
+    }
+
+    // no pelvis chain mapped...guess from common naming conventions instead
+    const root_motion_names: string[] = ['pelvis', 'hips', 'hip']
+    const fallback_bone: THREE.Bone | undefined = this.tarRig.skel.bones.find((bone) => {
+      const name = bone.name.toLowerCase().trim()
+      return root_motion_names.some(candidate => name.includes(candidate))
+    })
+
+    if (fallback_bone === undefined) {
+      console.warn('Retargeter: Could not find a root motion bone. Baked animation will have no position track')
+      return null
+    }
+
+    return fallback_bone.name
   }
 
   /**
