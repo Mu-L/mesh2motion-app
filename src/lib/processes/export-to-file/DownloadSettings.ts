@@ -17,30 +17,26 @@ export enum ExportFormat {
 
 export enum FbxExportPreset {
   Unreal = 'unreal',
-  Blender = 'blender',
-  ThreeJS = 'threejs',
+  // Blender = 'blender',
+  // ThreeJS = 'threejs',
   Unity = 'unity',
-  Maya = 'maya'
+  // Maya = 'maya'
 }
 
 export class DownloadSettings extends EventTarget {
-  private selected_bone_naming_structure: BoneNamingStructure = BoneNamingStructure.Default
-  private selected_export_contents: ExportContents = ExportContents.Full
-  private selected_export_format: ExportFormat = ExportFormat.GLB
-  private selected_fbx_export_preset: FbxExportPreset = FbxExportPreset.Blender
+  private selected_bone_naming_structure: BoneNamingStructure = this.get_default_bone_naming_structure()
+  private selected_export_contents: ExportContents = this.get_default_export_contents()
+  private selected_export_format: ExportFormat = this.get_default_export_format()
+  private selected_fbx_export_preset: FbxExportPreset = this.get_default_fbx_export_preset()
   private dom_download_settings_popup: HTMLElement | null = null
   private dom_download_settings_toggle: HTMLButtonElement | null = null
   private dom_download_settings_panel: HTMLElement | null = null
   private dom_bone_naming_section: HTMLElement | null = null
   private dom_bone_naming_group: HTMLElement | null = null
-  private dom_bone_naming_default_radio: HTMLInputElement | null = null
   private dom_export_contents_group: HTMLElement | null = null
-  private dom_export_contents_full_radio: HTMLInputElement | null = null
   private dom_export_format_group: HTMLElement | null = null
-  private dom_export_format_glb_radio: HTMLInputElement | null = null
   private dom_fbx_preset_section: HTMLElement | null = null
   private dom_fbx_preset_group: HTMLElement | null = null
-  private dom_fbx_preset_blender_radio: HTMLInputElement | null = null
 
   constructor () {
     super()
@@ -70,25 +66,17 @@ export class DownloadSettings extends EventTarget {
   // the export contents options remain available regardless of skeleton type.
   public update_download_settings_ui_visibility (skeleton_type: SkeletonType): void {
     // reset to defaults
-    this.selected_bone_naming_structure = BoneNamingStructure.Default
-    if (this.dom_bone_naming_default_radio !== null) {
-      this.dom_bone_naming_default_radio.checked = true
-    }
+    this.selected_bone_naming_structure = this.get_default_bone_naming_structure()
+    this.set_radio_group_value(this.dom_bone_naming_group, 'bone-naming-structure', this.selected_bone_naming_structure)
 
-    this.selected_export_contents = ExportContents.Full
-    if (this.dom_export_contents_full_radio !== null) {
-      this.dom_export_contents_full_radio.checked = true
-    }
+    this.selected_export_contents = this.get_default_export_contents()
+    this.set_radio_group_value(this.dom_export_contents_group, 'export-contents', this.selected_export_contents)
 
-    this.selected_export_format = ExportFormat.GLB
-    if (this.dom_export_format_glb_radio !== null) {
-      this.dom_export_format_glb_radio.checked = true
-    }
+    this.selected_export_format = this.get_default_export_format()
+    this.set_radio_group_value(this.dom_export_format_group, 'export-format', this.selected_export_format)
 
-    this.selected_fbx_export_preset = FbxExportPreset.Blender
-    if (this.dom_fbx_preset_blender_radio !== null) {
-      this.dom_fbx_preset_blender_radio.checked = true
-    }
+    this.selected_fbx_export_preset = this.get_default_fbx_export_preset()
+    this.set_radio_group_value(this.dom_fbx_preset_group, 'fbx-export-preset', this.selected_fbx_export_preset)
 
     const is_human_skeleton = skeleton_type === SkeletonType.Human
 
@@ -106,14 +94,10 @@ export class DownloadSettings extends EventTarget {
     this.dom_download_settings_panel = document.querySelector('#download-settings')
     this.dom_bone_naming_section = document.querySelector('#download-bone-naming-section')
     this.dom_bone_naming_group = document.querySelector('#download-bone-naming-group')
-    this.dom_bone_naming_default_radio = document.querySelector('#bone-naming-default')
     this.dom_export_contents_group = document.querySelector('#download-export-contents-group')
-    this.dom_export_contents_full_radio = document.querySelector('#export-contents-full')
     this.dom_export_format_group = document.querySelector('#download-export-format-group')
-    this.dom_export_format_glb_radio = document.querySelector('#export-format-glb')
     this.dom_fbx_preset_section = document.querySelector('#download-fbx-preset-section')
     this.dom_fbx_preset_group = document.querySelector('#download-fbx-preset-group')
-    this.dom_fbx_preset_blender_radio = document.querySelector('#fbx-preset-blender')
   }
 
   private add_event_listeners (): void {
@@ -149,10 +133,11 @@ export class DownloadSettings extends EventTarget {
         return
       }
 
-      this.selected_bone_naming_structure =
-        selected_radio.value === BoneNamingStructure.Mixamo
-          ? BoneNamingStructure.Mixamo
-          : BoneNamingStructure.Default
+      if (this.is_bone_naming_structure(selected_radio.value)) {
+        this.selected_bone_naming_structure = selected_radio.value
+      } else {
+        this.selected_bone_naming_structure = this.get_default_bone_naming_structure()
+      }
 
       this.dispatchEvent(new CustomEvent('bone-naming-structure-changed', {
         detail: { boneNamingStructure: this.selected_bone_naming_structure }
@@ -166,10 +151,11 @@ export class DownloadSettings extends EventTarget {
         return
       }
 
-      this.selected_export_contents =
-        selected_radio.value === ExportContents.Skeleton
-          ? ExportContents.Skeleton
-          : ExportContents.Full
+      if (this.is_export_contents(selected_radio.value)) {
+        this.selected_export_contents = selected_radio.value
+      } else {
+        this.selected_export_contents = this.get_default_export_contents()
+      }
 
       this.dispatchEvent(new CustomEvent('export-contents-changed', {
         detail: { exportContents: this.selected_export_contents }
@@ -183,10 +169,11 @@ export class DownloadSettings extends EventTarget {
         return
       }
 
-      this.selected_export_format =
-        selected_radio.value === ExportFormat.FBX
-          ? ExportFormat.FBX
-          : ExportFormat.GLB
+      if (this.is_export_format(selected_radio.value)) {
+        this.selected_export_format = selected_radio.value
+      } else {
+        this.selected_export_format = this.get_default_export_format()
+      }
 
       this.dispatchEvent(new CustomEvent('export-format-changed', {
         detail: { exportFormat: this.selected_export_format }
@@ -202,22 +189,10 @@ export class DownloadSettings extends EventTarget {
         return
       }
 
-      switch (selected_radio.value) {
-        case FbxExportPreset.Unreal:
-          this.selected_fbx_export_preset = FbxExportPreset.Unreal
-          break
-        case FbxExportPreset.ThreeJS:
-          this.selected_fbx_export_preset = FbxExportPreset.ThreeJS
-          break
-        case FbxExportPreset.Unity:
-          this.selected_fbx_export_preset = FbxExportPreset.Unity
-          break
-        case FbxExportPreset.Maya:
-          this.selected_fbx_export_preset = FbxExportPreset.Maya
-          break
-        default:
-          this.selected_fbx_export_preset = FbxExportPreset.Blender
-          break
+      if (this.is_fbx_export_preset(selected_radio.value)) {
+        this.selected_fbx_export_preset = selected_radio.value
+      } else {
+        this.selected_fbx_export_preset = this.get_default_fbx_export_preset()
       }
 
       this.dispatchEvent(new CustomEvent('fbx-export-preset-changed', {
@@ -243,5 +218,53 @@ export class DownloadSettings extends EventTarget {
     if (this.dom_download_settings_toggle !== null) {
       this.dom_download_settings_toggle.setAttribute('aria-expanded', is_visible ? 'true' : 'false')
     }
+  }
+
+  private set_radio_group_value (group: HTMLElement | null, name: string, value: string): void {
+    const option_radio = group?.querySelector<HTMLInputElement>(`input[name="${name}"][value="${value}"]`)
+    if (option_radio !== null && option_radio !== undefined) {
+      option_radio.checked = true
+    }
+  }
+
+  private is_bone_naming_structure (value: string): value is BoneNamingStructure {
+    return Object.values(BoneNamingStructure).includes(value as BoneNamingStructure)
+  }
+
+  private is_export_contents (value: string): value is ExportContents {
+    return Object.values(ExportContents).includes(value as ExportContents)
+  }
+
+  private is_export_format (value: string): value is ExportFormat {
+    return Object.values(ExportFormat).includes(value as ExportFormat)
+  }
+
+  private is_fbx_export_preset (value: string): value is FbxExportPreset {
+    return Object.values(FbxExportPreset).includes(value as FbxExportPreset)
+  }
+
+  private get_default_fbx_export_preset (): FbxExportPreset {
+    return this.get_first_enum_value(FbxExportPreset)
+  }
+
+  private get_default_bone_naming_structure (): BoneNamingStructure {
+    return this.get_first_enum_value(BoneNamingStructure)
+  }
+
+  private get_default_export_contents (): ExportContents {
+    return this.get_first_enum_value(ExportContents)
+  }
+
+  private get_default_export_format (): ExportFormat {
+    return this.get_first_enum_value(ExportFormat)
+  }
+
+  private get_first_enum_value<T extends string> (enum_object: Record<string, T>): T {
+    const enum_values = Object.values(enum_object)
+    if (enum_values.length === 0) {
+      throw new Error('Enum has no values')
+    }
+
+    return enum_values[0]
   }
 }

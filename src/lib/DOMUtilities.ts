@@ -1,4 +1,10 @@
 import { RigConfig } from './RigConfig.ts'
+import {
+  BoneNamingStructure,
+  ExportContents,
+  ExportFormat,
+  FbxExportPreset
+} from './processes/export-to-file/DownloadSettings.ts'
 
 interface RangeSettingConfig {
   min: string
@@ -186,55 +192,30 @@ export class DOMUtilities {
           <span class="download-settings-header">Download Options</span>
 
           <div id="download-bone-naming-section" class="options-container">
-            <span class="download-settings-label">Bone Names</span>
+            <span class="download-settings-label">Bone Naming Pattern</span>
             <fieldset id="download-bone-naming-group" class="toggle" aria-label="Bone naming structure">
-              <input type="radio" id="bone-naming-default" name="bone-naming-structure" value="default" checked>
-              <label for="bone-naming-default">Default</label>
-
-              <input type="radio" id="bone-naming-mixamo" name="bone-naming-structure" value="mixamo">
-              <label for="bone-naming-mixamo">Mixamo</label>
+              ${DOMUtilities.get_bone_naming_options_markup()}
             </fieldset>
           </div>
 
           <div class="options-container">
-            <span class="download-settings-label">Format</span>
+            <span class="download-settings-label">File Format</span>
             <fieldset id="download-export-format-group" class="toggle" aria-label="Export format">
-              <input type="radio" id="export-format-glb" name="export-format" value="glb" checked>
-              <label for="export-format-glb">GLB</label>
-
-              <input type="radio" id="export-format-fbx" name="export-format" value="fbx">
-              <label for="export-format-fbx">FBX 7.4</label>
+              ${DOMUtilities.get_export_format_options_markup()}
             </fieldset>
           </div>
 
           <div id="download-fbx-preset-section" class="options-container" hidden>
             <span class="download-settings-label">FBX Preset</span>
             <fieldset id="download-fbx-preset-group" class="toggle" aria-label="FBX export preset">
-              <input type="radio" id="fbx-preset-unreal" name="fbx-export-preset" value="unreal">
-              <label for="fbx-preset-unreal">Unreal</label>
-
-              <input type="radio" id="fbx-preset-blender" name="fbx-export-preset" value="blender" checked>
-              <label for="fbx-preset-blender">Blender</label>
-
-              <input type="radio" id="fbx-preset-threejs" name="fbx-export-preset" value="threejs">
-              <label for="fbx-preset-threejs">Three.js</label>
-
-              <input type="radio" id="fbx-preset-unity" name="fbx-export-preset" value="unity">
-              <label for="fbx-preset-unity">Unity</label>
-
-              <input type="radio" id="fbx-preset-maya" name="fbx-export-preset" value="maya">
-              <label for="fbx-preset-maya">Maya</label>
+              ${DOMUtilities.get_fbx_preset_options_markup()}
             </fieldset>
           </div>
 
           <div class="options-container">
             <span class="download-settings-label">Contents</span>
             <fieldset id="download-export-contents-group" class="toggle" aria-label="Export contents">
-              <input type="radio" id="export-contents-full" name="export-contents" value="full" checked>
-              <label for="export-contents-full">Default</label>
-
-              <input type="radio" id="export-contents-skeleton" name="export-contents" value="skeleton">
-              <label for="export-contents-skeleton">Skeleton + Animations</label>
+              ${DOMUtilities.get_export_contents_options_markup()}
             </fieldset>
           </div>
         </div>
@@ -262,6 +243,110 @@ export class DOMUtilities {
     }
 
     return 'images/icons/arrow-dropdown.svg'
+  }
+
+  private static get_fbx_preset_options_markup (): string {
+    const default_fbx_preset = DOMUtilities.get_default_fbx_preset()
+
+    return Object.values(FbxExportPreset).map((fbx_preset) => {
+      const preset_id = `fbx-preset-${fbx_preset}`
+      const preset_label = DOMUtilities.get_download_option_label(fbx_preset)
+      const is_checked = fbx_preset === default_fbx_preset ? ' checked' : ''
+
+      return `
+              <input type="radio" id="${preset_id}" name="fbx-export-preset" value="${fbx_preset}"${is_checked}>
+              <label for="${preset_id}">${preset_label}</label>
+      `
+    }).join('')
+  }
+
+  private static get_bone_naming_options_markup (): string {
+    const default_bone_naming_structure = DOMUtilities.get_default_bone_naming_structure()
+
+    return Object.values(BoneNamingStructure).map((bone_naming_structure) => {
+      const option_id = `bone-naming-${bone_naming_structure}`
+      const option_label = DOMUtilities.get_download_option_label(bone_naming_structure)
+      const is_checked = bone_naming_structure === default_bone_naming_structure ? ' checked' : ''
+
+      return `
+              <input type="radio" id="${option_id}" name="bone-naming-structure" value="${bone_naming_structure}"${is_checked}>
+              <label for="${option_id}">${option_label}</label>
+      `
+    }).join('')
+  }
+
+  private static get_export_format_options_markup (): string {
+    const default_export_format = DOMUtilities.get_default_export_format()
+
+    return Object.values(ExportFormat).map((export_format) => {
+      const option_id = `export-format-${export_format}`
+      const option_label = DOMUtilities.get_download_option_label(export_format)
+      const is_checked = export_format === default_export_format ? ' checked' : ''
+
+      return `
+              <input type="radio" id="${option_id}" name="export-format" value="${export_format}"${is_checked}>
+              <label for="${option_id}">${option_label}</label>
+      `
+    }).join('')
+  }
+
+  private static get_export_contents_options_markup (): string {
+    const default_export_contents = DOMUtilities.get_default_export_contents()
+
+    return Object.values(ExportContents).map((export_contents) => {
+      const option_id = `export-contents-${export_contents}`
+      const option_label = DOMUtilities.get_download_option_label(export_contents)
+      const is_checked = export_contents === default_export_contents ? ' checked' : ''
+
+      return `
+              <input type="radio" id="${option_id}" name="export-contents" value="${export_contents}"${is_checked}>
+              <label for="${option_id}">${option_label}</label>
+      `
+    }).join('')
+  }
+
+  private static get_default_bone_naming_structure (): BoneNamingStructure {
+    return DOMUtilities.get_first_enum_value(BoneNamingStructure)
+  }
+
+  private static get_default_export_format (): ExportFormat {
+    return DOMUtilities.get_first_enum_value(ExportFormat)
+  }
+
+  private static get_default_export_contents (): ExportContents {
+    return DOMUtilities.get_first_enum_value(ExportContents)
+  }
+
+  private static get_default_fbx_preset (): FbxExportPreset {
+    return DOMUtilities.get_first_enum_value(FbxExportPreset)
+  }
+
+  private static get_first_enum_value<T extends string> (enum_object: Record<string, T>): T {
+    const enum_values = Object.values(enum_object)
+    if (enum_values.length === 0) {
+      throw new Error('Enum has no values')
+    }
+
+    return enum_values[0]
+  }
+
+  private static get_download_option_label (value: string): string {
+    const custom_labels: Partial<Record<string, string>> = {
+      threejs: 'Three.js',
+      fbx: 'FBX 7.4',
+      glb: 'GLB',
+      full: 'Default',
+      skeleton: 'Skeleton + Animations'
+    }
+
+    const custom_label = custom_labels[value]
+    if (custom_label !== undefined) {
+      return custom_label
+    }
+
+    return value
+      .replace(/[-_]+/g, ' ')
+      .replace(/\b\w/g, (match) => match.toUpperCase())
   }
 
   private static is_retarget_page (): boolean {
