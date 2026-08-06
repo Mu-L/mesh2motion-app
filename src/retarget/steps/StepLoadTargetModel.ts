@@ -79,8 +79,10 @@ export class StepLoadTargetModel extends EventTarget {
       console.log('File selected:', file.name, 'Size:', file.size, 'Type:', file.type)
 
       // Get file extension
-      const file_name = file.name.toLowerCase()
-      let file_extension = ''
+      const file_name: string = file.name.toLowerCase()
+
+      // Determine the file extension and validate it
+      let file_extension: string
       if (file_name.endsWith('.glb')) {
         file_extension = 'glb'
       } else if (file_name.endsWith('.fbx')) {

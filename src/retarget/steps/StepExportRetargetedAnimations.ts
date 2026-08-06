@@ -130,9 +130,9 @@ export class StepExportRetargetedAnimations extends EventTarget {
 
       gltf_exporter.parse(
         exported_scene,
-        (result: ArrayBuffer) => {
+        (result: ArrayBuffer | { [key: string]: unknown }) => {
           // Handle the result of the export
-          if (result !== null) {
+          if (result instanceof ArrayBuffer) {
             this.save_array_buffer(result, `${file_name}.glb`)
             resolve() // Resolve the promise when the export is complete
           } else {
@@ -140,7 +140,7 @@ export class StepExportRetargetedAnimations extends EventTarget {
             reject(new Error('Export result is not an ArrayBuffer'))
           }
         },
-        (error: any) => {
+        (error: unknown) => {
           console.log('An error happened during parsing', error)
           reject(error) // Reject the promise if an error occurs
         },

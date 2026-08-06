@@ -98,7 +98,7 @@ class RetargetModule {
     })
 
     // Listen for target model (user-uploaded) loaded
-    this.step_load_target_model.addEventListener('target-model-loaded', (_event: Event) => {
+    this.step_load_target_model.addEventListener('target-model-loaded', () => {
       const temp_target_armature: Scene | null = this.step_load_target_model.get_retargetable_meshes()
 
       if (temp_target_armature == null) {

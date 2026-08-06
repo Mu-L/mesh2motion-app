@@ -27,9 +27,8 @@ export class Rig {
     // this.tpose.debug();
   }
 
-  fromConfig (cfg: Record<string, string[]> = {}): this {
-    for (const [k, v] of Object.entries(cfg)) {
-      const chain_names: string[] = Array.isArray(v) ? v : (v as any).names ?? []
+  fromConfig (cfg: Record<string, string[]>): this {
+    for (const [k, chain_names] of Object.entries(cfg)) {
       if (chain_names.length === 0) {
         console.log('Error - Rig.fromConfig : No joint names for chain ', k)
         continue

@@ -81,7 +81,7 @@ const _objectChangeEvent = { type: 'objectChange' }
 
 // ─── Main class ───────────────────────────────────────────────────────────────
 
-class CustomTransformControls extends Controls<Record<string, unknown>> {
+class CustomTransformControls extends Controls<Record<string, Record<string, unknown>>> {
 
   declare camera: Camera
   // object is declared as Object3D in base Controls but is set to undefined via defineProperty
@@ -157,7 +157,11 @@ class CustomTransformControls extends Controls<Record<string, unknown>> {
     this._plane = plane
     root.add(plane)
 
-    const scope = this as any
+    // scope can be used to access the instance of CustomTransformControls within the defineProperty function
+    // & is used to assert that scope has the same properties as CustomTransformControls
+    const scope = this as CustomTransformControls & Record<string, unknown>
+    const plane_scope = plane as CustomTransformControlsPlane & Record<string, unknown>
+    const gizmo_scope = gizmo as CustomTransformControlsGizmo & Record<string, unknown>
 
     function defineProperty (propName: string, defaultValue: unknown): void {
 
@@ -170,8 +174,8 @@ class CustomTransformControls extends Controls<Record<string, unknown>> {
         set: function (value: unknown) {
           if (propValue !== value) {
             propValue = value
-            ;(plane as any)[propName] = value
-            ;(gizmo as any)[propName] = value
+            plane_scope[propName] = value
+            gizmo_scope[propName] = value
             scope.dispatchEvent({ type: propName + '-changed', value })
             scope.dispatchEvent(_changeEvent)
           }
@@ -179,8 +183,8 @@ class CustomTransformControls extends Controls<Record<string, unknown>> {
       })
 
       scope[propName] = defaultValue
-      ;(plane as any)[propName] = defaultValue
-      ;(gizmo as any)[propName] = defaultValue
+      plane_scope[propName] = defaultValue
+      gizmo_scope[propName] = defaultValue
 
     }
 
