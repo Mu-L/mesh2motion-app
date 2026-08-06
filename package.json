@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage"
@@ -17,12 +19,14 @@
     "@vitest/coverage-v8": "^4.1.0",
     "@vitest/ui": "^4.1.0",
     "eslint": "^9.35.0",
-    "eslint-config-love": "^151.0.0",
+    "eslint-config-love": "^154.1.0",
     "eslint-plugin-import": "^2.32.0",
-    "eslint-plugin-n": "^17.24.0",
+    "eslint-plugin-n": "^18.2.2",
     "eslint-plugin-promise": "^7.2.0",
-    "jsdom": "^25.0.1",
-    "typescript": "^5.9.0",
+    "globals": "^17.9.0",
+    "jsdom": "^30.0.1",
+    "ts-declaration-location": "^1.0.7",
+    "typescript": "^5.9.3",
     "vite": "^8.0.0",
     "vitest": "^4.1.0"
   },
