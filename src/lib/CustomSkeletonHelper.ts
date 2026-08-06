@@ -324,7 +324,8 @@ class CustomSkeletonHelper extends InstancedMesh {
     // helper and gets reused by the next one
 
     // InstancedMesh.dispose() is what releases the instanceMatrix buffer
-    return super.dispose()
+    super.dispose()
+    return this
   }
 
   public show (): void {

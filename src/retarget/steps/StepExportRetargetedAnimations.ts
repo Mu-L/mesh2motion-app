@@ -1,5 +1,5 @@
 import { Scene, type AnimationClip, type Object3D, type SkinnedMesh } from 'three'
-import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter'
+import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js'
 import { FBXExporter } from '@comfyorg/fbx-exporter-three'
 import { AnimationRetargetService } from '../AnimationRetargetService'
 import { AnimationUtility } from '../../lib/processes/animations-listing/AnimationUtility'

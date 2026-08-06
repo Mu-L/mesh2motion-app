@@ -1,5 +1,5 @@
 import { Group, type Object3D, type Object3DEventMap, SkeletonHelper, type Scene } from 'three'
-import { type GLTF, GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
+import { type GLTF, GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import type GLTFResult from './interfaces/GLTFResult'
 import { type HandSkeletonType, SkeletonType } from '../../enums/SkeletonType'
 import { HandHelper } from './HandHelper'
