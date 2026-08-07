@@ -857,13 +857,40 @@ input[type="file"] {
     background: var(--button-primary-bg);
 }
 
-#bone-selection-section {
-    margin: 0;
-    background: var(--bg-alternate);
-    padding: 0.5rem;
-    border-radius: 3px;
-    flex-direction: column;
+/* selected bone overlay banner shown over the 3D viewport */
+#selected-bone-overlay {
+    display: none;
+    position: fixed;
+    bottom: 2rem;
+    left: 0;
+    right: 300px; /* keep clear of the tool panel */
+    justify-content: center;
+    pointer-events: none;
+    z-index: 10;
+}
 
+#selected-bone-overlay .selected-bone-overlay-chip {
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+    background: var(--bg-alternate);
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    color: var(--text-primary);
+    font-size: 1.4rem;
+    font-weight: normal;
+    padding: 0.5rem 1.25rem;
+}
+
+#selected-bone-overlay .selected-bone-overlay-label {
+    font-size: 70%;
+    color: var(--text-alternate);
+    margin:0;
+    padding:0;
+}
+
+#selected-bone-overlay #selected-bone-overlay-text {
+    font-size: 1.5rem;
 }
 
 .alternate-background-section {

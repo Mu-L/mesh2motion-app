@@ -291,8 +291,8 @@ export class Mesh2MotionEngine {
     this.transform_controls.enabled = false
   }
 
-  public handle_mesh_drag_mode_mouse_down (mouse_event: MouseEvent | PointerEvent): void {
-    this.mesh_drag_bone_placement.handle_mouse_down(mouse_event)
+  public handle_mesh_drag_mode_mouse_down (mouse_event: MouseEvent | PointerEvent): boolean {
+    return this.mesh_drag_bone_placement.handle_mouse_down(mouse_event)
   }
 
   public handle_mesh_drag_mode_mouse_move (mouse_event: MouseEvent | PointerEvent): void {

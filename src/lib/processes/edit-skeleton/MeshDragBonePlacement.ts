@@ -50,34 +50,35 @@ export class MeshDragBonePlacement {
     }
   }
 
-  public handle_mouse_down (mouse_event: MouseEvent | PointerEvent): void {
+  // returns true when a bone was grabbed and dragging started
+  public handle_mouse_down (mouse_event: MouseEvent | PointerEvent): boolean {
     const is_primary_button_click = mouse_event.button === 0
     if (!is_primary_button_click) {
-      return
+      return false
     }
 
     const skeleton_to_test: Skeleton | undefined = this.edit_skeleton_step.skeleton()
     if (skeleton_to_test === undefined) {
-      return
+      return false
     }
 
     const [closest_bone, , closest_distance] =
       Utility.raycast_closest_bone_test(this.camera, mouse_event, skeleton_to_test)
 
     if (closest_bone?.name === 'root') {
-      return
+      return false
     }
 
     if (!this.edit_skeleton_step.is_bone_selectable(closest_bone)) {
-      return
+      return false
     }
 
     if (closest_distance === null || closest_distance > this.hover_distance) {
-      return
+      return false
     }
 
     if (closest_bone === null) {
-      return
+      return false
     }
 
     this.edit_skeleton_step.set_currently_selected_bone(closest_bone)
@@ -96,6 +97,7 @@ export class MeshDragBonePlacement {
     }
 
     this.move_selected_bone_to_mesh_midpoint(mouse_event)
+    return true
   }
 
   public handle_mouse_move (mouse_event: MouseEvent | PointerEvent): void {

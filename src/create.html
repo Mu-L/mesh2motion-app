@@ -207,10 +207,6 @@
               <img class="skeleton-template-image-preview ignore-filters" src="images/icons/zoom.svg" alt="Preview image" width="20" height="20" />
           </div>
 
-          <p id="bone-selection-section">
-            <span>Selected Bone: <span id="edit-selected-bone-label">None</span></span>
-          </p>
-
           <div style="display: flex; flex-direction: column;">
             
             <div class="pill-switch-group" aria-label="Positioning mode">
@@ -466,6 +462,14 @@
 
     <!-- 3d view controls shown on bottom right. This helps with click events -->
     <div id="view-control-hitbox"></div>
+
+    <!-- large overlay banner showing the currently selected bone while editing the skeleton -->
+    <div id="selected-bone-overlay">
+      <span class="selected-bone-overlay-chip">
+        <span class="selected-bone-overlay-label">Selected Bone</span> 
+        <span id="selected-bone-overlay-text"></span>
+      </span>
+    </div>
 
     <!-- build version information-->
     <span id="build-version"></span>

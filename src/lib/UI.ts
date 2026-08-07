@@ -48,7 +48,8 @@ export class UI {
   dom_reset_skeleton_scale_button: HTMLButtonElement | null = null
 
   // edit skeleton UI step controls
-  dom_selected_bone_label: HTMLElement | null = null
+  dom_selected_bone_overlay: HTMLElement | null = null
+  dom_selected_bone_overlay_text: HTMLElement | null = null
   dom_transform_manual_options: HTMLElement | null = null
   dom_transform_type_radio_group: HTMLElement | null = null
   dom_transform_space_radio_group: HTMLElement | null = null
@@ -169,7 +170,8 @@ export class UI {
     this.dom_undo_button = document.querySelector('#undo-button')
     this.dom_redo_button = document.querySelector('#redo-button')
 
-    this.dom_selected_bone_label = document.querySelector('#edit-selected-bone-label')
+    this.dom_selected_bone_overlay = document.querySelector('#selected-bone-overlay')
+    this.dom_selected_bone_overlay_text = document.querySelector('#selected-bone-overlay-text')
     this.dom_transform_manual_options = document.querySelector('#transform-manual-options')
 
     this.dom_transform_type_radio_group = document.querySelector('#transform-control-type-group')
@@ -269,6 +271,37 @@ export class UI {
     }
     if (this.dom_show_skeleton_container != null) {
       this.dom_show_skeleton_container.style.display = 'none'
+    }
+    if (this.dom_selected_bone_overlay != null) {
+      this.dom_selected_bone_overlay.style.display = 'none'
+    }
+  }
+
+  // show the viewport overlay with the bone name (called when a drag starts)
+  public show_selected_bone_overlay (bone_name: string): void {
+    if (this.dom_selected_bone_overlay === null || this.dom_selected_bone_overlay_text === null) {
+      return
+    }
+    this.dom_selected_bone_overlay_text.innerHTML = this.bone_overlay_display_name(bone_name)
+    this.dom_selected_bone_overlay.style.display = 'flex'
+  }
+
+  // we have a standard where "_l" is left at the end and "_r" is right at the end, 
+  // so we can just check for those and display them as "Left" or "Right"
+  private bone_overlay_display_name(bone_input: string): string {
+    if (bone_input.endsWith('_l')) {
+      return bone_input.slice(0, -2) + ' (Left)'
+    } else if (bone_input.endsWith('_r')) {
+      return bone_input.slice(0, -2) + ' (Right)'
+    } else {
+      return bone_input
+    }
+  }
+
+  // hide the viewport overlay (called when a drag ends or the step changes)
+  public hide_selected_bone_overlay (): void {
+    if (this.dom_selected_bone_overlay !== null) {
+      this.dom_selected_bone_overlay.style.display = 'none'
     }
   }
 }
