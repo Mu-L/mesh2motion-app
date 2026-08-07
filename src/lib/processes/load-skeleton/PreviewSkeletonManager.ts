@@ -1,9 +1,10 @@
-import { Group, type Object3D, type Object3DEventMap, SkeletonHelper, type Scene } from 'three'
+import { Group, type Object3D, type Object3DEventMap, type Scene } from 'three'
 import { type GLTF, GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import type GLTFResult from './interfaces/GLTFResult'
 import { type HandSkeletonType, SkeletonType } from '../../enums/SkeletonType'
 import { HandHelper } from './HandHelper'
 import { RigConfig } from '../../RigConfig'
+import { CustomSkeletonHelper } from '../../CustomSkeletonHelper'
 
 const skeleton_group_name: string = 'preview_skeleton_group'
 
@@ -54,7 +55,9 @@ export async function add_preview_skeleton (
     const helper = new HandHelper()
     helper.modify_hand_skeleton(loaded_scene, hand_skeleton_type)
   }
-  const skeleton_helper = new SkeletonHelper(loaded_scene.children[0])
+  // same custom helper used everywhere else, so the preview matches the
+  // edit skeleton display instead of three's default line skeleton
+  const skeleton_helper = new CustomSkeletonHelper(loaded_scene)
   skeleton_helper.name = 'preview_skeleton'
   preview_skeleton_group.add(skeleton_helper)
   preview_skeleton_group.scale.set(skeleton_scale, skeleton_scale, skeleton_scale)
@@ -72,7 +75,18 @@ async function load_skeleton (file_path: string): Promise<Object3D<Object3DEvent
 // need a function that will remove the preview skeleton from the scene
 export function remove_preview_skeleton (root: Scene): void {
   const skeleton_group = root.getObjectByName(skeleton_group_name)
-  if ((skeleton_group?.parent) != null) {
+  if (skeleton_group === undefined) {
+    return
+  }
+
+  // the custom helper owns GPU resources (instance buffers, geometries,
+  // materials) that have to be released explicitly when it leaves the scene
+  const skeleton_helper = skeleton_group.getObjectByName('preview_skeleton')
+  if (skeleton_helper instanceof CustomSkeletonHelper) {
+    skeleton_helper.dispose()
+  }
+
+  if (skeleton_group.parent != null) {
     skeleton_group.parent.remove(skeleton_group)
   }
 }
