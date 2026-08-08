@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { BoxGeometry, Group, Mesh, MeshStandardMaterial, Scene } from 'three'
+import { BoxGeometry, Group, Mesh, MeshPhongMaterial, MeshStandardMaterial, Scene } from 'three'
 import { ModelAnalysisReport, type SceneSnapshot } from './ModelAnalysisReport'
 
 /** A 1x1x1 box mesh with a name, so snapshots have something real to measure. */
@@ -113,6 +113,84 @@ describe('ModelAnalysisReport.snapshot_scene', () => {
 
     expect(analyzed.transformed_ancestors).toEqual(['Armature'])
     expect(analyzed.warnings).toEqual([])
+  })
+
+  it('records the material properties that affect how the model looks', () => {
+    const scene = new Scene()
+    const mesh = make_mesh('body')
+    const material = mesh.material as MeshStandardMaterial
+    material.name = 'skin'
+    material.color.set(0x804020)
+    material.metalness = 0.25
+    scene.add(mesh)
+
+    const analyzed = ModelAnalysisReport.snapshot_scene(scene).objects[0]
+
+    expect(analyzed.materials).toHaveLength(1)
+    expect(analyzed.materials[0].name).toBe('skin')
+    expect(analyzed.materials[0].type).toBe('MeshStandardMaterial')
+    expect(analyzed.materials[0].color_hex).toBe('#804020')
+    expect(analyzed.materials[0].metalness).toBeCloseTo(0.25)
+    expect(analyzed.materials[0].texture_slots).toEqual([])
+  })
+
+  it('flags an emissive material, which is what makes a GLB export glow', () => {
+    const scene = new Scene()
+    const mesh = make_mesh('lamp')
+    const material = mesh.material as MeshStandardMaterial
+    material.name = 'lamp_mat'
+    material.emissive.set(0xffffff)
+    material.emissiveIntensity = 1
+    scene.add(mesh)
+
+    const analyzed = ModelAnalysisReport.snapshot_scene(scene).objects[0]
+
+    expect(analyzed.materials[0].emissive_hex).toBe('#ffffff')
+    expect(analyzed.materials[0].emissive_strength).toBeCloseTo(1)
+    expect(analyzed.warnings.some((entry) => entry.includes('emissive (glow) color'))).toBe(true)
+  })
+
+  it('does not flag a material whose emissive color is black', () => {
+    const scene = new Scene()
+    const mesh = make_mesh('body')
+    const material = mesh.material as MeshStandardMaterial
+    material.emissive.set(0x000000)
+    scene.add(mesh)
+
+    const analyzed = ModelAnalysisReport.snapshot_scene(scene).objects[0]
+
+    expect(analyzed.materials[0].emissive_strength).toBe(0)
+    expect(analyzed.warnings).toEqual([])
+  })
+
+  it('flags a phong material whose emissive intensity is dropped on export', () => {
+    const scene = new Scene()
+    const mesh = new Mesh(new BoxGeometry(1, 1, 1), new MeshPhongMaterial())
+    mesh.name = 'lamp'
+    const material = mesh.material as MeshPhongMaterial
+    material.emissive.set(0xffffff)
+    // a dim glow on screen here, but a GLB export keeps the color and loses this
+    material.emissiveIntensity = 0.1
+    scene.add(mesh)
+
+    const analyzed = ModelAnalysisReport.snapshot_scene(scene).objects[0]
+
+    expect(analyzed.materials[0].exports_emissive_intensity).toBe(false)
+    expect(analyzed.warnings.some((entry) => entry.includes('drops the intensity'))).toBe(true)
+  })
+
+  it('does not flag dropped intensity on a standard material, which can export it', () => {
+    const scene = new Scene()
+    const mesh = make_mesh('lamp')
+    const material = mesh.material as MeshStandardMaterial
+    material.emissive.set(0xffffff)
+    material.emissiveIntensity = 0.1
+    scene.add(mesh)
+
+    const analyzed = ModelAnalysisReport.snapshot_scene(scene).objects[0]
+
+    expect(analyzed.materials[0].exports_emissive_intensity).toBe(true)
+    expect(analyzed.warnings.some((entry) => entry.includes('drops the intensity'))).toBe(false)
   })
 
   it('does not flag a mesh that is already baked at the origin', () => {

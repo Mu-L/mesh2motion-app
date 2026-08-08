@@ -1,5 +1,61 @@
-import { Box3, Vector3, type BufferGeometry, type Material, type Mesh, type Object3D } from 'three'
+import { Box3, SRGBColorSpace, Vector3, type BufferGeometry, type Material, type Mesh, type MeshPhongMaterial, type MeshStandardMaterial, type Object3D, type Texture } from 'three'
 import { ModalDialog } from '../../ModalDialog.ts'
+
+/**
+ * Materials arrive as whatever type the file's loader picked, so read them
+ * through one shape that covers the properties we report on and treat anything
+ * the material does not have as absent.
+ */
+type InspectableMaterial = Material & Partial<MeshStandardMaterial & MeshPhongMaterial>
+
+/** Texture slots worth listing, in the order they show up in the report. */
+const TEXTURE_SLOTS: Array<[keyof InspectableMaterial, string]> = [
+  ['map', 'color'],
+  ['emissiveMap', 'emissive'],
+  ['normalMap', 'normal'],
+  ['bumpMap', 'bump'],
+  ['roughnessMap', 'roughness'],
+  ['metalnessMap', 'metalness'],
+  ['specularMap', 'specular'],
+  ['aoMap', 'ambient occlusion'],
+  ['alphaMap', 'alpha'],
+  ['displacementMap', 'displacement']
+]
+
+/**
+ * What one material on one mesh looked like at import time. Emissive gets its
+ * own fields because it is the property most likely to come in wrong from an
+ * FBX and then follow the model all the way out to a GLB export.
+ */
+export interface MaterialInfo {
+  name: string
+  type: string
+  color_hex: string | null
+  emissive_hex: string | null
+  emissive_intensity: number
+  /**
+   * Brightest channel of the emissive color on its own. A GLB export writes the
+   * color straight into emissiveFactor whenever this is above zero, so this is
+   * the number that decides whether the exported model glows.
+   */
+  emissive_strength: number
+  /**
+   * Whether emissive intensity survives an export. Only MeshStandardMaterial
+   * carries it, through the KHR_materials_emissive_strength extension. FBX files
+   * usually load as MeshPhongMaterial, where the intensity dims the model in the
+   * viewport but is dropped on export, leaving the full emissive color behind.
+   */
+  exports_emissive_intensity: boolean
+  specular_hex: string | null
+  metalness: number | null
+  roughness: number | null
+  shininess: number | null
+  opacity: number
+  transparent: boolean
+  vertex_colors: boolean
+  side: string
+  texture_slots: string[]
+}
 
 /**
  * Snapshot of a single mesh-bearing object, taken at a point in time so later
@@ -19,7 +75,7 @@ export interface AnalyzedObject {
   transformed_ancestors: string[]
   vertex_count: number
   triangle_count: number
-  material_summary: string
+  materials: MaterialInfo[]
   has_uvs: boolean
   has_normals: boolean
   has_skin_weights: boolean
@@ -67,6 +123,9 @@ export class ModelAnalysisReport {
 
   // rotation this far from zero (in degrees) is treated as intentional
   private static readonly ROTATION_EPSILON_DEGREES = 0.01
+
+  // emissive brightness above this is enough to visibly wash a model out
+  private static readonly EMISSIVE_EPSILON = 0.01
 
   /**
    * Walk a scene and record everything worth reporting on.
@@ -147,7 +206,7 @@ export class ModelAnalysisReport {
       transformed_ancestors: this.find_transformed_ancestors(mesh, scene_root),
       vertex_count: position_attribute === undefined ? 0 : position_attribute.count,
       triangle_count: this.count_triangles(geometry),
-      material_summary: this.describe_material(mesh.material),
+      materials: this.analyze_materials(mesh.material),
       has_uvs: geometry.getAttribute('uv') !== undefined,
       has_normals: geometry.getAttribute('normal') !== undefined,
       has_skin_weights: geometry.getAttribute('skinWeight') !== undefined,
@@ -195,38 +254,63 @@ export class ModelAnalysisReport {
     return Math.floor(position_attribute.count / 3)
   }
 
-  private static describe_material (material: Material | Material[]): string {
+  private static analyze_materials (material: Material | Material[]): MaterialInfo[] {
     if (Array.isArray(material)) {
-      if (material.length === 0) {
-        return 'none'
-      }
-      return `${material.length} materials: ` + material.map((entry) => this.describe_single_material(entry)).join(', ')
+      return material
+        .filter((entry) => entry !== undefined && entry !== null)
+        .map((entry) => this.analyze_material(entry))
     }
 
     if (material === undefined || material === null) {
-      return 'none'
+      return []
     }
 
-    return this.describe_single_material(material)
+    return [this.analyze_material(material)]
   }
 
-  private static describe_single_material (material: Material): string {
-    const parts: string[] = [material.type]
+  /**
+   * Pull the material properties that explain how a mesh ends up looking, both
+   * in the viewport and after export. Anything the material type does not have
+   * comes back as null rather than a made up default.
+   */
+  private static analyze_material (material: Material): MaterialInfo {
+    const inspectable: InspectableMaterial = material as InspectableMaterial
 
-    // texture file name
-    if (material.name !== '') {
-      parts.push(`"${material.name}"`)
+    // three defaults emissiveIntensity to 1, but a material type without any
+    // emissive support has neither property
+    const emissive_intensity: number = inspectable.emissiveIntensity ?? 1
+    const emissive_strength: number = inspectable.emissive === undefined
+      ? 0
+      : Math.max(inspectable.emissive.r, inspectable.emissive.g, inspectable.emissive.b)
+
+    return {
+      name: material.name,
+      type: material.type,
+      color_hex: inspectable.color === undefined ? null : `#${inspectable.color.getHexString(SRGBColorSpace)}`,
+      emissive_hex: inspectable.emissive === undefined ? null : `#${inspectable.emissive.getHexString(SRGBColorSpace)}`,
+      emissive_intensity,
+      emissive_strength,
+      exports_emissive_intensity: inspectable.isMeshStandardMaterial === true,
+      specular_hex: inspectable.specular === undefined ? null : `#${inspectable.specular.getHexString(SRGBColorSpace)}`,
+      metalness: inspectable.metalness ?? null,
+      roughness: inspectable.roughness ?? null,
+      shininess: inspectable.shininess ?? null,
+      opacity: material.opacity,
+      transparent: material.transparent,
+      vertex_colors: material.vertexColors,
+      side: this.describe_material_side(material.side),
+      texture_slots: this.find_texture_slots(inspectable)
     }
+  }
 
-    // a missing texture map is a common reason a model imports looking flat/grey
-    // we already show info about the material type if it exists, so don't show anything if we have a map
-    const has_map: boolean = (material as any).map !== undefined && (material as any).map !== null
-    parts.push(has_map ? 'textured' : 'no texture')
-
-    // single side, double sided, etc.
-     parts.push(this.describe_material_side(material.side))
-
-    return parts.join(' / ')
+  /** Names of the texture slots this material actually has a texture in. */
+  private static find_texture_slots (material: InspectableMaterial): string[] {
+    return TEXTURE_SLOTS
+      .filter(([property]) => {
+        const texture: Texture | null | undefined = material[property] as Texture | null | undefined
+        return texture !== undefined && texture !== null
+      })
+      .map(([, label]) => label)
   }
 
   private static describe_material_side (side: number): string {
@@ -269,7 +353,42 @@ export class ModelAnalysisReport {
       warnings.push('Mesh is already rigged. This workflow drops the existing skeleton - use "Use Your Rigged Model" to keep it.')
     }
 
+    analyzed.materials.forEach((material) => {
+      warnings.push(...this.collect_material_warnings(material))
+    })
+
     return warnings
+  }
+
+  /**
+   * Material problems that carry through to the export. Emissive is the one that
+   * bites most often: FBX files frequently set an emissive color without meaning
+   * to, and the GLB export writes that color into emissiveFactor, so the model
+   * comes out glowing even though it looked fine in the tool that authored it.
+   */
+  private static collect_material_warnings (material: MaterialInfo): string[] {
+    const warnings: string[] = []
+    const label: string = this.material_label(material)
+
+    if (material.emissive_strength <= this.EMISSIVE_EPSILON) {
+      return warnings
+    }
+
+    warnings.push(`${label} has an emissive (glow) color of ${material.emissive_hex ?? '-'}. GLB export writes that color out as emissiveFactor, so the model glows regardless of lighting. Emissive should usually be black (#000000) unless the part is meant to light up.`)
+
+    // the case that catches people out: the viewport dims the glow by the
+    // intensity, the export does not, so the GLB comes back brighter than what
+    // was on screen here. FBX materials load as Phong, which is exactly this case
+    if (!material.exports_emissive_intensity && Math.abs(material.emissive_intensity - 1) > this.EMISSIVE_EPSILON) {
+      warnings.push(`${label} dims its glow with an emissive intensity of ${this.format_number(material.emissive_intensity)}, but only standard (PBR) materials can store intensity in a GLB. This one is a ${material.type}, so the export keeps the full emissive color and drops the intensity - the exported model will glow more than it does here.`)
+    }
+
+    return warnings
+  }
+
+  /** How a material is referred to in warning text. */
+  private static material_label (material: MaterialInfo): string {
+    return material.name === '' ? `Material (${material.type})` : `Material "${material.name}"`
   }
 
   /** Scene wide observations that no single object can tell us. */
@@ -432,6 +551,7 @@ export class ModelAnalysisReport {
             <span class="model-analysis-name">${this.escape_html(analyzed.name)}</span>
             <span class="model-analysis-parent">Parent: ${this.escape_html(this.describe_parentage(analyzed))}</span>
             ${this.build_mesh_properties_html(analyzed)}
+            ${this.build_materials_html(analyzed)}
         </li>
       `)
       .join('')
@@ -453,12 +573,91 @@ export class ModelAnalysisReport {
       ['Size', this.format_vector(analyzed.world_size, ' x ')],
       ['Vertices', analyzed.vertex_count.toLocaleString()],
       ['Triangles', analyzed.triangle_count.toLocaleString()],
-      ['Material', analyzed.material_summary],
       ['UVs', analyzed.has_uvs ? 'yes' : 'no'],
       ['Normals', analyzed.has_normals ? 'yes' : 'no'],
       ['Skin weights', analyzed.has_skin_weights ? 'yes' : 'no']
     ]
 
+    return this.build_property_list_html(properties)
+  }
+
+  /** One material block per material on the mesh, since a mesh can carry several. */
+  private static build_materials_html (analyzed: AnalyzedObject): string {
+    if (analyzed.materials.length === 0) {
+      return '<p class="model-analysis-material-name">Material: none</p>'
+    }
+
+    const blocks: string = analyzed.materials
+      .map((material) => `
+        <li class="model-analysis-material">
+          <span class="model-analysis-material-name">${this.escape_html(this.material_label(material))} - ${this.escape_html(material.type)}</span>
+          ${this.build_property_list_html(this.material_properties(material))}
+        </li>
+      `)
+      .join('')
+
+    return `<ul class="model-analysis-material-list">${blocks}</ul>`
+  }
+
+  /**
+   * Emissive gets three rows rather than one because the color, what the
+   * viewport shows, and what an export writes are all different numbers.
+   */
+  private static material_properties (material: MaterialInfo): Array<[string, string]> {
+    const properties: Array<[string, string]> = []
+
+    if (material.color_hex !== null) {
+      properties.push(['Base color', material.color_hex])
+    }
+
+    if (material.emissive_hex !== null) {
+      properties.push(['Emissive color', material.emissive_hex])
+      properties.push(['Emissive intensity', this.format_number(material.emissive_intensity)])
+      properties.push(['Emissive in GLB export', this.describe_exported_emissive(material)])
+    }
+
+    if (material.metalness !== null) {
+      properties.push(['Metalness', this.format_number(material.metalness)])
+    }
+
+    if (material.roughness !== null) {
+      properties.push(['Roughness', this.format_number(material.roughness)])
+    }
+
+    if (material.shininess !== null) {
+      properties.push(['Shininess', this.format_number(material.shininess)])
+    }
+
+    if (material.specular_hex !== null) {
+      properties.push(['Specular color', material.specular_hex])
+    }
+
+    properties.push(['Opacity', this.format_number(material.opacity)])
+    properties.push(['Transparent', material.transparent ? 'yes' : 'no'])
+    properties.push(['Vertex colors', material.vertex_colors ? 'yes' : 'no'])
+    properties.push(['Renders', material.side])
+    properties.push([
+      'Textures',
+      material.texture_slots.length === 0 ? 'none' : material.texture_slots.join(', ')
+    ])
+
+    return properties
+  }
+
+  /** What a GLB export will actually do with this material's emissive settings. */
+  private static describe_exported_emissive (material: MaterialInfo): string {
+    if (material.emissive_strength <= this.EMISSIVE_EPSILON) {
+      return 'none (black, no glow)'
+    }
+
+    if (material.exports_emissive_intensity) {
+      return `${material.emissive_hex ?? '-'} at ${this.format_number(material.emissive_intensity)} intensity`
+    }
+
+    return `${material.emissive_hex ?? '-'} at full intensity (${material.type} cannot export intensity)`
+  }
+
+  private static build_property_list_html (properties: Array<[string, string]>): string {
     return `
       <ul class="model-analysis-object-properties-inline">
         ${properties
