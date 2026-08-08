@@ -30,6 +30,9 @@ interface CustomSkeletonHelperOptions {
   jointColor?: ColorRepresentation
   thickness_ratio?: number
   opacity?: number
+  // joints are only meaningful where the skeleton can be edited, so displays
+  // that are read only (the load skeleton preview) turn them off up front
+  showJoints?: boolean
 }
 
 const bone_category_colors: Record<BoneCategory, number> = {
@@ -186,6 +189,7 @@ class CustomSkeletonHelper extends InstancedMesh {
 
     this.joint_points = new Points(pointsGeometry, pointsMaterial)
     this.joint_points.frustumCulled = false
+    this.joint_points.visible = options.showJoints ?? true
     this.add(this.joint_points)
 
     // the bone shapes have to be sorted by camera distance, and onBeforeRender

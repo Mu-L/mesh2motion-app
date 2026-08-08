@@ -69,8 +69,7 @@ export class StepLoadSkeleton extends EventTarget {
     // when we come back to this step, there is a good chance we already selected a skeleton
     // so just use that and load the preview right when we enter this step
     if (!this.has_select_skeleton_ui_option()) {
-      add_preview_skeleton(this._main_scene, this.skeleton_file_path(),
-        this.hand_skeleton_type(), this.skeleton_scale_percentage).catch((err) => {
+      this.refresh_preview_skeleton().catch((err) => {
         console.error('error loading preview skeleton: ', err)
       })
 
@@ -148,7 +147,7 @@ export class StepLoadSkeleton extends EventTarget {
         // load the preview skeleton
         // need to get the file name for the correct skeleton
         // we pass the skeleton scale in the case where we set a skeleton, change scale, then change the skeleton
-        add_preview_skeleton(this._main_scene, this.skeleton_file_path(), this.hand_skeleton_type(), this.skeleton_scale()).then(() => {
+        this.refresh_preview_skeleton().then(() => {
           // enable the ability to progress to next step
           this.allow_proceeding_to_next_step(true)
         }).catch((err) => {
@@ -176,7 +175,7 @@ export class StepLoadSkeleton extends EventTarget {
     this.ui.dom_hand_skeleton_selection?.addEventListener('change', () => {
       // rebuild the preview skeleton with the new hand skeleton type
       // make sure we keep existing scale if we made a change to that
-      add_preview_skeleton(this._main_scene, this.skeleton_file_path(), this.hand_skeleton_type(), this.skeleton_scale()).catch((err) => {
+      this.refresh_preview_skeleton().catch((err) => {
         console.error('error loading preview skeleton: ', err)
       })
     })
@@ -202,10 +201,17 @@ export class StepLoadSkeleton extends EventTarget {
     if (this.ui.dom_scale_skeleton_percentage_display !== null) {
       this.ui.dom_scale_skeleton_percentage_display.textContent = display_value
     }
-    add_preview_skeleton(this._main_scene, this.skeleton_file_path(), this.hand_skeleton_type(), this.skeleton_scale_percentage)
+    this.refresh_preview_skeleton()
       .catch((err) => {
         console.error('error loading preview skeleton: ', err)
       })
+  }
+
+  // the preview here is display only. The skeleton cannot be edited until the
+  // edit skeleton step, so the joint points are turned off for every rebuild
+  private async refresh_preview_skeleton (): Promise<Object3D<Object3DEventMap>> {
+    return await add_preview_skeleton(this._main_scene, this.skeleton_file_path(),
+      this.hand_skeleton_type(), this.skeleton_scale(), false)
   }
 
   public load_skeleton_file (file_path: string): void {

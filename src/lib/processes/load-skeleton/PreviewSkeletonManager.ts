@@ -15,7 +15,8 @@ export async function add_preview_skeleton (
   root: Scene,
   skeleton_type: SkeletonType,
   hand_skeleton_type: HandSkeletonType,
-  skeleton_scale: number = 1.0
+  skeleton_scale: number = 1.0,
+  show_joints: boolean = true
 ): Promise<Object3D<Object3DEventMap>> {
   let preview_skeleton_group = root.getObjectByName(skeleton_group_name) as Group | undefined
 
@@ -27,6 +28,15 @@ export async function add_preview_skeleton (
     if (previous_file_path === skeleton_type && previous_hand_type === hand_skeleton_type) {
       // Only update scale
       preview_skeleton_group.scale.set(skeleton_scale, skeleton_scale, skeleton_scale)
+
+      // this path reuses a helper built by an earlier call, so the joint setting
+      // has to be reapplied here. Leaving it to the constructor alone meant a
+      // helper created while joints were on kept showing them
+      const existing_helper = preview_skeleton_group.getObjectByName('preview_skeleton')
+      if (existing_helper instanceof CustomSkeletonHelper) {
+        existing_helper.setJointsVisible(show_joints)
+      }
+
       // Return the first child (should be loaded_scene)
       return preview_skeleton_group.children[0]
     } else {
@@ -57,7 +67,7 @@ export async function add_preview_skeleton (
   }
   // same custom helper used everywhere else, so the preview matches the
   // edit skeleton display instead of three's default line skeleton
-  const skeleton_helper = new CustomSkeletonHelper(loaded_scene)
+  const skeleton_helper = new CustomSkeletonHelper(loaded_scene, { showJoints: show_joints })
   skeleton_helper.name = 'preview_skeleton'
   preview_skeleton_group.add(skeleton_helper)
   preview_skeleton_group.scale.set(skeleton_scale, skeleton_scale, skeleton_scale)
