@@ -134,63 +134,33 @@ describe('ModelAnalysisReport.snapshot_scene', () => {
     expect(analyzed.materials[0].texture_slots).toEqual([])
   })
 
-  it('flags an emissive material, which is what makes a GLB export glow', () => {
+  it('records the emissive values that decide whether an export glows', () => {
     const scene = new Scene()
     const mesh = make_mesh('lamp')
     const material = mesh.material as MeshStandardMaterial
-    material.name = 'lamp_mat'
     material.emissive.set(0xffffff)
-    material.emissiveIntensity = 1
+    material.emissiveIntensity = 0.1
     scene.add(mesh)
 
     const analyzed = ModelAnalysisReport.snapshot_scene(scene).objects[0]
 
+    // intensity is deliberately not folded into the strength - an export writes
+    // the color on its own, which is what makes a dim looking model glow later
     expect(analyzed.materials[0].emissive_hex).toBe('#ffffff')
+    expect(analyzed.materials[0].emissive_intensity).toBeCloseTo(0.1)
     expect(analyzed.materials[0].emissive_strength).toBeCloseTo(1)
-    expect(analyzed.warnings.some((entry) => entry.includes('emissive (glow) color'))).toBe(true)
+    expect(analyzed.materials[0].exports_emissive_intensity).toBe(true)
   })
 
-  it('does not flag a material whose emissive color is black', () => {
-    const scene = new Scene()
-    const mesh = make_mesh('body')
-    const material = mesh.material as MeshStandardMaterial
-    material.emissive.set(0x000000)
-    scene.add(mesh)
-
-    const analyzed = ModelAnalysisReport.snapshot_scene(scene).objects[0]
-
-    expect(analyzed.materials[0].emissive_strength).toBe(0)
-    expect(analyzed.warnings).toEqual([])
-  })
-
-  it('flags a phong material whose emissive intensity is dropped on export', () => {
+  it('knows a phong material cannot carry emissive intensity through an export', () => {
     const scene = new Scene()
     const mesh = new Mesh(new BoxGeometry(1, 1, 1), new MeshPhongMaterial())
     mesh.name = 'lamp'
-    const material = mesh.material as MeshPhongMaterial
-    material.emissive.set(0xffffff)
-    // a dim glow on screen here, but a GLB export keeps the color and loses this
-    material.emissiveIntensity = 0.1
     scene.add(mesh)
 
     const analyzed = ModelAnalysisReport.snapshot_scene(scene).objects[0]
 
     expect(analyzed.materials[0].exports_emissive_intensity).toBe(false)
-    expect(analyzed.warnings.some((entry) => entry.includes('drops the intensity'))).toBe(true)
-  })
-
-  it('does not flag dropped intensity on a standard material, which can export it', () => {
-    const scene = new Scene()
-    const mesh = make_mesh('lamp')
-    const material = mesh.material as MeshStandardMaterial
-    material.emissive.set(0xffffff)
-    material.emissiveIntensity = 0.1
-    scene.add(mesh)
-
-    const analyzed = ModelAnalysisReport.snapshot_scene(scene).objects[0]
-
-    expect(analyzed.materials[0].exports_emissive_intensity).toBe(true)
-    expect(analyzed.warnings.some((entry) => entry.includes('drops the intensity'))).toBe(false)
   })
 
   it('does not flag a mesh that is already baked at the origin', () => {
@@ -215,9 +185,32 @@ describe('ModelAnalysisReport.build_html', () => {
     expect(html).not.toContain('<img src=x')
     expect(html).toContain('&lt;img src=x')
   })
+
+  it('warns about a glow that is still there after import', () => {
+    const scene = new Scene()
+    const mesh = make_mesh('lamp')
+    const material = mesh.material as MeshStandardMaterial
+    material.name = 'lamp_mat'
+    material.emissive.set(0xffffff)
+    scene.add(mesh)
+    const snapshot: SceneSnapshot = ModelAnalysisReport.snapshot_scene(scene)
+
+    const html: string = ModalAnalysisHtml(snapshot)
+
+    expect(html).toContain('emissive (glow) color')
+    expect(html).toContain('lamp_mat')
+  })
+
+  it('does not warn about a material with no glow', () => {
+    const scene = new Scene()
+    scene.add(make_mesh('body'))
+    const snapshot: SceneSnapshot = ModelAnalysisReport.snapshot_scene(scene)
+
+    expect(ModalAnalysisHtml(snapshot)).not.toContain('emissive (glow) color')
+  })
 })
 
-/** Small helper so the escaping test reads clearly. */
+/** Small helper so the html tests read clearly. */
 function ModalAnalysisHtml (snapshot: SceneSnapshot): string {
   return ModelAnalysisReport.build_html({
     source_name: 'test.glb',

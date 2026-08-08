@@ -446,20 +446,17 @@ class FBXTreeParser {
 
         }
 
-        if (materialNode.Emissive) {
+        // Emissive is deliberately not read from the FBX (Emissive / EmissiveColor /
+        // EmissiveFactor). FBX files very often carry an emissive color that was
+        // never meant to light anything up, and it cannot survive a round trip:
+        // the viewport dims it by EmissiveFactor, but a GLB export writes the color
+        // into emissiveFactor and only keeps the intensity for standard (PBR)
+        // materials - FBX loads as Phong, so the intensity is dropped and the
+        // exported model glows far brighter than it did on screen. Leaving these
+        // parameters unset keeps three's default of a black (no glow) emissive.
+        if (materialNode.Emissive || materialNode.EmissiveColor || materialNode.EmissiveFactor) {
 
-            parameters.emissive = ColorManagement.colorSpaceToWorking(new Color().fromArray(materialNode.Emissive.value), SRGBColorSpace);
-
-        } else if (materialNode.EmissiveColor && (materialNode.EmissiveColor.type === 'Color' || materialNode.EmissiveColor.type === 'ColorRGB')) {
-
-            // The blender exporter exports emissive color here instead of in materialNode.Emissive
-            parameters.emissive = ColorManagement.colorSpaceToWorking(new Color().fromArray(materialNode.EmissiveColor.value), SRGBColorSpace);
-
-        }
-
-        if (materialNode.EmissiveFactor) {
-
-            parameters.emissiveIntensity = parseFloat(materialNode.EmissiveFactor.value);
+            console.warn('THREE.FBXLoader: ignoring the emissive settings on material "%s". Emissive from an FBX cannot be exported correctly, so it is treated as no glow.', materialNode.attrName);
 
         }
 
@@ -543,12 +540,14 @@ class FBXTreeParser {
                     break;
 
                 case 'EmissiveColor':
-                    parameters.emissiveMap = scope.getTexture(textureMap, child.ID);
-                    if (parameters.emissiveMap !== undefined) {
+                    // skipped along with the emissive color above - an emissive map
+                    // with no emissive color to tint it does nothing except add an
+                    // unused texture to whatever the model is exported to
 
-                        parameters.emissiveMap.colorSpace = SRGBColorSpace;
-
-                    }
+                    // parameters.emissiveMap = scope.getTexture(textureMap, child.ID);
+                    // if (parameters.emissiveMap !== undefined) {
+                    //     parameters.emissiveMap.colorSpace = SRGBColorSpace;
+                    // }
 
                     break;
 

@@ -361,10 +361,9 @@ export class ModelAnalysisReport {
   }
 
   /**
-   * Material problems that carry through to the export. Emissive is the one that
-   * bites most often: FBX files frequently set an emissive color without meaning
-   * to, and the GLB export writes that color into emissiveFactor, so the model
-   * comes out glowing even though it looked fine in the tool that authored it.
+   * Material problems that follow the model out to an export. The FBX loader
+   * already drops emissive on the way in, since it cannot round trip, so what is
+   * left here is a glow that a GLB or GLTF file asked for on purpose.
    */
   private static collect_material_warnings (material: MaterialInfo): string[] {
     const warnings: string[] = []
@@ -374,13 +373,13 @@ export class ModelAnalysisReport {
       return warnings
     }
 
-    warnings.push(`${label} has an emissive (glow) color of ${material.emissive_hex ?? '-'}. GLB export writes that color out as emissiveFactor, so the model glows regardless of lighting. Emissive should usually be black (#000000) unless the part is meant to light up.`)
+    warnings.push(`${label} has an emissive (glow) color of ${material.emissive_hex ?? '-'}. A GLB export writes that color into emissiveFactor, so the model glows no matter how it is lit. Emissive should usually be black (#000000) unless the part is meant to light up.`)
 
     // the case that catches people out: the viewport dims the glow by the
-    // intensity, the export does not, so the GLB comes back brighter than what
-    // was on screen here. FBX materials load as Phong, which is exactly this case
+    // intensity, the export does not, so the exported model comes back brighter
+    // than what was on screen here
     if (!material.exports_emissive_intensity && Math.abs(material.emissive_intensity - 1) > this.EMISSIVE_EPSILON) {
-      warnings.push(`${label} dims its glow with an emissive intensity of ${this.format_number(material.emissive_intensity)}, but only standard (PBR) materials can store intensity in a GLB. This one is a ${material.type}, so the export keeps the full emissive color and drops the intensity - the exported model will glow more than it does here.`)
+      warnings.push(`${label} dims that glow with an emissive intensity of ${this.format_number(material.emissive_intensity)}, but only standard (PBR) materials can store intensity in a GLB. This one is a ${material.type}, so the export keeps the full emissive color and drops the intensity - the exported model will glow more than it does here.`)
     }
 
     return warnings
