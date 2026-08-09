@@ -248,10 +248,11 @@ export class StepEditSkeleton extends EventTarget {
 
   /**
    * The offset is a decimal in scene units, but a percentage reads better on a
-   * range this small (-0.10 to 0.10 shows as -10% to 10%).
+   * range this small (-0.10 to 0.10 shows as -10.0% to 10.0%). One decimal
+   * place so the slider's 0.001 step is actually visible in the label.
    */
   private format_arm_plane_offset_label (): string {
-    return `${(this.arm_plane_offset * 100).toFixed(0)}%`
+    return `${(this.arm_plane_offset * 100).toFixed(1)}%`
   }
 
   /**
