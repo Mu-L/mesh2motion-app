@@ -129,6 +129,7 @@ export class EventListeners {
       const selected_bone = this.bootstrap.edit_skeleton_step.get_currently_selected_bone()
       if (selected_bone !== null && did_start_bone_drag) {
         this.bootstrap.ui.show_selected_bone_overlay(selected_bone.name)
+        this.bootstrap.renderer.domElement.style.cursor = 'grabbing'
       }
     }, false)
 
@@ -146,6 +147,7 @@ export class EventListeners {
 
       this.active_canvas_pointer_id = null
       this.bootstrap.ui.hide_selected_bone_overlay()
+      this.bootstrap.renderer.domElement.style.cursor = ''
     })
 
     document.addEventListener('pointercancel', (event: PointerEvent) => {
@@ -162,6 +164,7 @@ export class EventListeners {
 
       this.active_canvas_pointer_id = null
       this.bootstrap.ui.hide_selected_bone_overlay()
+      this.bootstrap.renderer.domElement.style.cursor = ''
     })
 
     // custom event listeners for the transform controls.
@@ -171,12 +174,15 @@ export class EventListeners {
       this.bootstrap.enable_orbit_controls(!event.value)
 
       // show the overlay when the transform widget drag starts, hide when it ends
+      // also switch to a grabbing cursor while dragging a bone
       const dragged_bone = this.bootstrap.edit_skeleton_step.get_currently_selected_bone()
       if (event.value && dragged_bone !== null &&
         this.bootstrap.process_step === ProcessStep.EditSkeleton) {
         this.bootstrap.ui.show_selected_bone_overlay(dragged_bone.name)
+        this.bootstrap.renderer.domElement.style.cursor = 'grabbing'
       } else if (!event.value) {
         this.bootstrap.ui.hide_selected_bone_overlay()
+        this.bootstrap.renderer.domElement.style.cursor = ''
       }
 
       // Store undo state when we start dragging (event.value = true)
