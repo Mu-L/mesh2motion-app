@@ -117,6 +117,24 @@ export class Utility {
     return name.includes('leaf') || name.includes('tip')
   }
 
+  /**
+   * The point halfway between a bone's start joint and its first child's joint.
+   * This is the reference point the skinning solvers measure vertex distances
+   * against — a bone's "center of mass" rather than its start joint, which
+   * keeps long bones from losing vertices to their neighbors.
+   * Childless bones fall back to their own world position.
+   */
+  static bone_midpoint_to_child (bone: Bone): Vector3 {
+    const bone_position = Utility.world_position_from_object(bone)
+    if (bone.children.length === 0) {
+      return bone_position.clone()
+    }
+    // Assume first child is the relevant one
+    const child = bone.children[0] as Bone
+    const child_position = Utility.world_position_from_object(child)
+    return new Vector3().lerpVectors(bone_position, child_position, 0.5)
+  }
+
   static bone_list_from_hierarchy (bone_hierarchy: Object3D): Bone[] {
     if (bone_hierarchy === undefined || bone_hierarchy === null) {
       console.warn('bone_hierarchy is undefined or null')

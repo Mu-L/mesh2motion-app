@@ -40,7 +40,7 @@ export class WeightCalculator {
    * Must be called before calculate_median_bone_weights.
    */
   public initialize_caches (): void {
-    this.cached_median_child_bone_positions = this.bones.map(b => this.midpoint_to_child(b))
+    this.cached_median_child_bone_positions = this.bones.map(b => Utility.bone_midpoint_to_child(b))
     this.bones.forEach((b, idx) => this.bone_object_to_index.set(b, idx))
 
     // The root bone is only for global transform changes, and leaf/orientation
@@ -103,17 +103,6 @@ export class WeightCalculator {
       skin_indices.push(closest_bone_index, 0, 0, 0)
       skin_weights.push(1.0, 0, 0, 0)
     }
-  }
-
-  private midpoint_to_child (bone: Bone): Vector3 {
-    const bone_position = Utility.world_position_from_object(bone)
-    if (bone.children.length === 0) {
-      return bone_position.clone()
-    }
-    // Assume first child is the relevant one
-    const child = bone.children[0] as Bone
-    const child_position = Utility.world_position_from_object(child)
-    return new Vector3().lerpVectors(bone_position, child_position, 0.5)
   }
 
   // every vertex checks to see if it is below the hips area,

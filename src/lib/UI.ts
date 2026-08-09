@@ -61,6 +61,13 @@ export class UI {
   dom_preview_plane_height_label: HTMLElement | null = null
   dom_preview_plane_setting_container: HTMLElement | null = null
 
+  // arm plane controls
+  dom_use_arm_plane_container: HTMLElement | null = null
+  dom_arm_plane_checkbox: HTMLInputElement | null = null
+  dom_arm_plane_offset_input: HTMLInputElement | null = null
+  dom_arm_plane_offset_label: HTMLElement | null = null
+  dom_arm_plane_setting_container: HTMLElement | null = null
+
   dom_skinned_mesh_tools: HTMLElement | null = null
   dom_skinned_mesh_animation_tools: HTMLElement | null = null
   dom_back_to_edit_skeleton_button: HTMLButtonElement | null = null
@@ -183,6 +190,13 @@ export class UI {
     this.dom_preview_plane_height_input = document.querySelector('#preview-plane-height-input')
     this.dom_preview_plane_height_label = document.querySelector('#preview-plane-height-label')
     this.dom_preview_plane_setting_container = document.querySelector('#preview-plane-setting-container')
+
+    // arm plane controls
+    this.dom_use_arm_plane_container = document.querySelector('#use-arm-plane-container')
+    this.dom_arm_plane_checkbox = document.querySelector('#arm-plane-checkbox')
+    this.dom_arm_plane_offset_input = document.querySelector('#arm-plane-offset-input')
+    this.dom_arm_plane_offset_label = document.querySelector('#arm-plane-offset-label')
+    this.dom_arm_plane_setting_container = document.querySelector('#arm-plane-setting-container')
 
     this.dom_bind_pose_button = document.querySelector('#action_bind_pose')
     // this.dom_scale_skeleton_input_box = document.querySelector('#scale-input')
