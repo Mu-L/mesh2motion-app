@@ -90,7 +90,23 @@ export class EventListeners {
 
       // edit skeleton step logic that deals with hovering over bones
       if (this.bootstrap.process_step === ProcessStep.EditSkeleton) {
-        this.bootstrap.edit_skeleton_step.calculate_bone_hover_effect(event, this.bootstrap.camera, this.bootstrap.transform_controls_hover_distance)
+        const hovered_bone = this.bootstrap.edit_skeleton_step.calculate_bone_hover_effect(event, this.bootstrap.camera, this.bootstrap.transform_controls_hover_distance)
+
+        // show the overlay and use a hand cursor when hovering over a joint
+        // the drag handlers control the overlay while dragging, so skip then
+        const is_dragging_bone = this.bootstrap.is_transform_controls_dragging || this.bootstrap.is_mesh_drag_mode_dragging
+        if (!is_dragging_bone) {
+          if (hovered_bone !== null) {
+            this.bootstrap.ui.show_selected_bone_overlay(hovered_bone.name)
+            this.bootstrap.renderer.domElement.style.cursor = 'grab'
+          } else {
+            this.bootstrap.ui.hide_selected_bone_overlay()
+            this.bootstrap.renderer.domElement.style.cursor = ''
+          }
+        }
+      } else if (this.bootstrap.renderer.domElement.style.cursor !== '') {
+        // reset cursor when leaving the edit skeleton step
+        this.bootstrap.renderer.domElement.style.cursor = ''
       }
     })
 
