@@ -236,7 +236,7 @@ export class StepEditSkeleton extends EventTarget {
     // set default value (and label) for arm plane offset on UI
     if (this.ui.dom_arm_plane_offset_input !== null && this.ui.dom_arm_plane_offset_label !== null) {
       this.ui.dom_arm_plane_offset_input.value = this.arm_plane_offset.toString()
-      this.ui.dom_arm_plane_offset_label.textContent = this.arm_plane_offset.toFixed(2)
+      this.ui.dom_arm_plane_offset_label.textContent = this.format_arm_plane_offset_label()
     }
 
     // the checkbox is forced off for non-human rigs, so keep the DOM in sync
@@ -244,6 +244,14 @@ export class StepEditSkeleton extends EventTarget {
     if (this.ui.dom_arm_plane_checkbox !== null) {
       this.ui.dom_arm_plane_checkbox.checked = this.enable_arm_plane_correction
     }
+  }
+
+  /**
+   * The offset is a decimal in scene units, but a percentage reads better on a
+   * range this small (-0.10 to 0.10 shows as -10% to 10%).
+   */
+  private format_arm_plane_offset_label (): string {
+    return `${(this.arm_plane_offset * 100).toFixed(0)}%`
   }
 
   /**
@@ -536,7 +544,7 @@ export class StepEditSkeleton extends EventTarget {
 
       // Update the label to show current value
       if (this.ui.dom_arm_plane_offset_label !== null) {
-        this.ui.dom_arm_plane_offset_label.textContent = this.arm_plane_offset.toFixed(2)
+        this.ui.dom_arm_plane_offset_label.textContent = this.format_arm_plane_offset_label()
       }
     })
 
