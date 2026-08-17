@@ -90,9 +90,7 @@ export class StepLoadModel extends EventTarget {
 
         // material is broken somehow, so just use a normal material to help communicate this
         if (this.mesh_has_broken_material) {
-          const new_material: MeshPhongMaterial = new MeshPhongMaterial()
-          new_material.color.set(0x00aaee)
-          this.material_list.push(new_material)
+          this.material_list.push(this.create_fallback_material())
           return
         }
 
@@ -108,6 +106,44 @@ export class StepLoadModel extends EventTarget {
           this.material_list.push(new_material)
         }
       }
+    })
+  }
+
+  /**
+   * Stand-in material used when a model references textures we could not load.
+   * The distinct blue is a visual cue that the original material was dropped.
+   */
+  private create_fallback_material (): MeshPhongMaterial {
+    const new_material: MeshPhongMaterial = new MeshPhongMaterial()
+    new_material.color.set(0x00aaee)
+    return new_material
+  }
+
+  /**
+   * Swap every mesh material in the scene for the fallback material.
+   * Used for skinned meshes, which keep their original mesh objects instead of
+   * being rebuilt from the geometry/material lists, so they never pass through
+   * calculate_geometry_and_materials() where the same swap happens.
+   */
+  private replace_materials_with_fallback (scene_to_fix: Scene): void {
+    scene_to_fix.traverse((child: Object3D) => {
+      if (child.type !== 'Mesh' && child.type !== 'SkinnedMesh') {
+        return
+      }
+
+      const mesh = child as Mesh
+      const original_material = mesh.material
+
+      // keep the array structure so multi-material meshes still map to their geometry groups
+      if (Array.isArray(original_material)) {
+        mesh.material = original_material.map(() => this.create_fallback_material())
+      } else {
+        mesh.material = this.create_fallback_material()
+      }
+
+      // the originals reference textures that failed to load, so nothing else needs them
+      const materials_to_dispose: Material[] = Array.isArray(original_material) ? original_material : [original_material]
+      materials_to_dispose.forEach((material) => { material.dispose() })
     })
   }
 
@@ -273,6 +309,10 @@ export class StepLoadModel extends EventTarget {
   }
 
   public load_model_file (model_file_path: string | ArrayBuffer | null, file_extension: string): void {
+    // only the FBX loader can flag this, so clear it here or a previous broken FBX
+    // would keep forcing the fallback material onto every model loaded after it
+    this.mesh_has_broken_material = false
+
     if (file_extension === 'fbx') {
       this.load_fbx_file(model_file_path)
     } else if (file_extension === 'glb') {
@@ -398,6 +438,13 @@ export class StepLoadModel extends EventTarget {
     // any scaling or further processing can be donw as part of the retargeting process
     if (this.preserve_skinned_mesh) {
       this.final_retargetable_model_data = clean_scene_with_only_models
+
+      // the non-skinned path does this inside calculate_geometry_and_materials(), which
+      // we never reach here, so apply the same fallback material directly on the meshes
+      if (this.mesh_has_broken_material) {
+        this.replace_materials_with_fallback(this.final_retargetable_model_data)
+      }
+
       this.import_analysis = this.build_import_analysis(imported_snapshot, this.final_retargetable_model_data)
       this.dispatchEvent(new CustomEvent('modelLoadedForRetargeting'))
       return
