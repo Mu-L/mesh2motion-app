@@ -6,9 +6,9 @@ import { DOMUtilities } from '../../DOMUtilities.ts'
 
 import { Scene } from 'three/src/scenes/Scene.js'
 import { Mesh } from 'three/src/objects/Mesh.js'
-import { MathUtils } from 'three/src/math/MathUtils.js'
-import { BufferGeometry, Group, MeshPhongMaterial, Object3DEventMap, type Material, type Object3D } from 'three'
+import { BufferGeometry, Group, type Material, type Object3D } from 'three'
 import { ModalDialog } from '../../ModalDialog.ts'
+import { Utility } from '../../Utilities.ts'
 import { ModelCleanupUtility } from './ModelCleanupUtility.ts'
 import { ModelAnalysisReport, type ModelImportAnalysis, type SceneSnapshot } from './ModelAnalysisReport.ts'
 import { PlatformUtils } from '../../PlatformUtils.ts'
@@ -61,22 +61,6 @@ export class StepLoadModel extends EventTarget {
     return this.final_retargetable_model_data
   }
 
-  // function that goes through all our geometry data and calculates how many triangles we have
-  private calculate_mesh_metrics (buffer_geometry: BufferGeometry[]): void {
-    let triangle_count = 0
-    let vertex_count = 0
-
-    // calculate all the loaded mesh data
-    buffer_geometry.forEach((geometry) => {
-      triangle_count += geometry.attributes.position.count / 3
-      vertex_count += geometry.attributes.position.count
-    })
-
-    this.triangle_count = triangle_count
-    this.vertex_count = vertex_count
-    this.objects_count = buffer_geometry.length
-  }
-
   private calculate_geometry_and_materials (scene_to_analyze: Scene): void {
     // clear geometry and material list in case we run this again
     // this empties the array in place, and doesn't need to create a new array
@@ -85,12 +69,12 @@ export class StepLoadModel extends EventTarget {
 
     scene_to_analyze.traverse((child: Object3D) => {
       if (child.type === 'Mesh') {
-        const geometry_to_add: BufferGeometry = this.build_geometry_list_from_mesh(child as Mesh)
+        const geometry_to_add: BufferGeometry = ModelCleanupUtility.build_geometry_list_from_mesh(child as Mesh)
         this.geometry_list.push(geometry_to_add)
 
         // material is broken somehow, so just use a normal material to help communicate this
         if (this.mesh_has_broken_material) {
-          this.material_list.push(this.create_fallback_material())
+          this.material_list.push(ModelCleanupUtility.create_fallback_material())
           return
         }
 
@@ -107,80 +91,6 @@ export class StepLoadModel extends EventTarget {
         }
       }
     })
-  }
-
-  /**
-   * Stand-in material used when a model references textures we could not load.
-   * The distinct blue is a visual cue that the original material was dropped.
-   */
-  private create_fallback_material (): MeshPhongMaterial {
-    const new_material: MeshPhongMaterial = new MeshPhongMaterial()
-    new_material.color.set(0x00aaee)
-    return new_material
-  }
-
-  /**
-   * Swap every mesh material in the scene for the fallback material.
-   * Used for skinned meshes, which keep their original mesh objects instead of
-   * being rebuilt from the geometry/material lists, so they never pass through
-   * calculate_geometry_and_materials() where the same swap happens.
-   */
-  private replace_materials_with_fallback (scene_to_fix: Scene): void {
-    scene_to_fix.traverse((child: Object3D) => {
-      if (child.type !== 'Mesh' && child.type !== 'SkinnedMesh') {
-        return
-      }
-
-      const mesh = child as Mesh
-      const original_material = mesh.material
-
-      // keep the array structure so multi-material meshes still map to their geometry groups
-      if (Array.isArray(original_material)) {
-        mesh.material = original_material.map(() => this.create_fallback_material())
-      } else {
-        mesh.material = this.create_fallback_material()
-      }
-
-      // the originals reference textures that failed to load, so nothing else needs them
-      const materials_to_dispose: Material[] = Array.isArray(original_material) ? original_material : [original_material]
-      materials_to_dispose.forEach((material) => { material.dispose() })
-    })
-  }
-
-  /**
-   * bring in a mesh object, extract geometry data and return only attributes we need
-   * Removes Interleaved buffer attributes and converted to normal buffer attributes
-   * @param mesh object
-   * @returns Geometry data with Buffer Attributes
-   */
-  private build_geometry_list_from_mesh (child: Mesh): BufferGeometry {
-    // handle normal data buffer attribute data structure
-    const geometry_to_add: BufferGeometry = child.geometry.clone()
-    geometry_to_add.name = child.name
-
-    // the geometry data might be stored as Interleaved buffer,  if it is
-    // we need to convert the data to a reular BufferGeometry for processing later
-    // this way we can normalize processing later
-    if (child.geometry.attributes.position.isInterleavedBufferAttribute) {
-      // console.log('reading interleaved geometry for child mesh. Converting', child.geometry)
-      geometry_to_add.setAttribute('position', child.geometry.attributes.position.clone())
-      geometry_to_add.setAttribute('normal', child.geometry.attributes.normal.clone())
-      geometry_to_add.setAttribute('uv', child.geometry.attributes.uv.clone())
-
-      // set uv2 if it exists
-      if (child.geometry.attributes.uv2 !== undefined) {
-        geometry_to_add.setAttribute('uv2', child.geometry.attributes.uv2.clone())
-      }
-
-      // remove skinIndex and skinWeight if they exist
-      if (child.geometry.attributes.skinIndex !== undefined) {
-        geometry_to_add.deleteAttribute('skinIndex')
-      }
-      if (child.geometry.attributes.skinWeight !== undefined) {
-        geometry_to_add.deleteAttribute('skinWeight')
-      }
-    }
-    return geometry_to_add
   }
 
   public begin (): void {
@@ -210,7 +120,7 @@ export class StepLoadModel extends EventTarget {
       // handle file upload
       this.ui.dom_upload_model_button.addEventListener('change', (event: Event) => {
         const file = event.target.files[0]
-        const file_extension: string = this.get_file_extension(file.name)
+        const file_extension: string = Utility.get_file_extension(file.name)
         this.source_file_name = file.name
 
         const reader = new FileReader()
@@ -242,30 +152,12 @@ export class StepLoadModel extends EventTarget {
 
         if (model_selection !== null) {
           const file_name = model_selection.options[model_selection.selectedIndex].value
-          const file_extension: string = this.get_file_extension(file_name)
+          const file_extension: string = Utility.get_file_extension(file_name)
           this.source_file_name = file_name.split('/').pop() ?? file_name
           this.load_model_file(file_name, file_extension)
         }
       })
     }
-  }
-
-  private get_file_extension (file_path: string): string {
-    const file_name: string | undefined = file_path.split('/').pop() // remove the directory path
-
-    if (file_name === undefined) {
-      console.error('Critical Error: Undefined file extension when loading model')
-      return 'UNDEFINED'
-    }
-
-    const file_extension: string | undefined = file_name?.split('.').pop() // just get last part of the file name
-
-    if (file_extension === undefined) {
-      console.error('Critical Error: File does not have a "." symbol in the name')
-      return 'UNDEFINED'
-    }
-
-    return file_extension
   }
 
   public clear_loaded_model_data (): void {
@@ -442,7 +334,7 @@ export class StepLoadModel extends EventTarget {
       // the non-skinned path does this inside calculate_geometry_and_materials(), which
       // we never reach here, so apply the same fallback material directly on the meshes
       if (this.mesh_has_broken_material) {
-        this.replace_materials_with_fallback(this.final_retargetable_model_data)
+        ModelCleanupUtility.replace_materials_with_fallback(this.final_retargetable_model_data)
       }
 
       this.import_analysis = this.build_import_analysis(imported_snapshot, this.final_retargetable_model_data)
@@ -462,7 +354,12 @@ export class StepLoadModel extends EventTarget {
     // preserved skinned meshes shouldn't be breaking apart mesh data
     // breaking apart skinned meshes converts it to a regular mesh which we don't want.
     this.calculate_geometry_and_materials(clean_scene_with_only_models)
-    this.calculate_mesh_metrics(this.geometry_list) // this needs to happen after calculate_geometry_and_materials
+
+    // this needs to happen after calculate_geometry_and_materials
+    const mesh_metrics = ModelCleanupUtility.calculate_mesh_metrics(this.geometry_list)
+    this.vertex_count = mesh_metrics.vertex_count
+    this.triangle_count = mesh_metrics.triangle_count
+    this.objects_count = mesh_metrics.objects_count
     console.log(`Vertex count:${this.vertex_count}    Triangle Count:${this.triangle_count} Object Count:${this.objects_count} `)
 
     // assign the final cleaned up model to the original model data
@@ -536,23 +433,5 @@ export class StepLoadModel extends EventTarget {
 
   public models_material_list (): Material[] {
     return this.material_list
-  }
-
-  /**
-   * Rotate all geometry data in the model by the given angle (in degrees) around the specified axis.
-   * This directly modifies the geometry vertices.
-   */
-  public rotate_model_geometry (axis: 'x' | 'y' | 'z', angle: number): void {
-    const radians = MathUtils.degToRad(angle)
-    this.final_mesh_data.traverse((obj: Object3D) => {
-      if (obj.type === 'Mesh') {
-        const mesh = obj as Mesh
-        mesh.geometry.rotateX(axis === 'x' ? radians : 0)
-        mesh.geometry.rotateY(axis === 'y' ? radians : 0)
-        mesh.geometry.rotateZ(axis === 'z' ? radians : 0)
-        mesh.geometry.computeBoundingBox()
-        mesh.geometry.computeBoundingSphere()
-      }
-    })
   }
 }

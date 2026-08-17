@@ -233,15 +233,15 @@ export class EventListeners {
 
     // rotate model after loading it in to orient it correctly
     this.bootstrap.ui.dom_rotate_model_x_button?.addEventListener('click', () => {
-      this.bootstrap.load_model_step.rotate_model_geometry('x', 90)
+      ModelCleanupUtility.rotate_model_geometry(this.bootstrap.load_model_step.model_meshes(), 'x', 90)
     })
 
     this.bootstrap.ui.dom_rotate_model_y_button?.addEventListener('click', () => {
-      this.bootstrap.load_model_step.rotate_model_geometry('y', 90)
+      ModelCleanupUtility.rotate_model_geometry(this.bootstrap.load_model_step.model_meshes(), 'y', 90)
     })
 
     this.bootstrap.ui.dom_rotate_model_z_button?.addEventListener('click', () => {
-      this.bootstrap.load_model_step.rotate_model_geometry('z', 90)
+      ModelCleanupUtility.rotate_model_geometry(this.bootstrap.load_model_step.model_meshes(), 'z', 90)
     })
 
     // show a breakdown of what was found in the imported file

@@ -1,10 +1,96 @@
-import { Box3, type BufferGeometry, Group, Matrix4, type Object3DEventMap, type Object3D, Scene, Mesh, MeshPhongMaterial, type SkinnedMesh } from 'three'
+import { Box3, type BufferGeometry, Group, Matrix4, MathUtils, type Object3DEventMap, type Object3D, Scene, Mesh, MeshPhongMaterial, type Material, type SkinnedMesh } from 'three'
 import { FrontSide } from 'three/src/constants.js'
 
 /**
  * Utility helpers to clean up and normalize loaded model geometry.
  */
 export class ModelCleanupUtility {
+  /**
+   * Stand-in material used when a model references textures we could not load.
+   * The distinct blue is a visual cue that the original material was dropped.
+   */
+  public static create_fallback_material (): MeshPhongMaterial {
+    const new_material: MeshPhongMaterial = new MeshPhongMaterial()
+    new_material.color.set(0x00aaee)
+    return new_material
+  }
+
+  /**
+   * Swap every mesh material in the scene for the fallback material.
+   * Used for skinned meshes, which keep their original mesh objects instead of
+   * being rebuilt from the geometry/material lists.
+   */
+  public static replace_materials_with_fallback (scene_to_fix: Scene): void {
+    scene_to_fix.traverse((child: Object3D) => {
+      if (child.type !== 'Mesh' && child.type !== 'SkinnedMesh') {
+        return
+      }
+
+      const mesh = child as Mesh
+      const original_material = mesh.material
+
+      // keep the array structure so multi-material meshes still map to their geometry groups
+      if (Array.isArray(original_material)) {
+        mesh.material = original_material.map(() => this.create_fallback_material())
+      } else {
+        mesh.material = this.create_fallback_material()
+      }
+
+      // the originals reference textures that failed to load, so nothing else needs them
+      const materials_to_dispose: Material[] = Array.isArray(original_material) ? original_material : [original_material]
+      materials_to_dispose.forEach((material) => { material.dispose() })
+    })
+  }
+
+  /**
+   * bring in a mesh object, extract geometry data and return only attributes we need
+   * Removes Interleaved buffer attributes and converted to normal buffer attributes
+   * @param mesh object
+   * @returns Geometry data with Buffer Attributes
+   */
+  public static build_geometry_list_from_mesh (child: Mesh): BufferGeometry {
+    // handle normal data buffer attribute data structure
+    const geometry_to_add: BufferGeometry = child.geometry.clone()
+    geometry_to_add.name = child.name
+
+    // the geometry data might be stored as Interleaved buffer,  if it is
+    // we need to convert the data to a reular BufferGeometry for processing later
+    // this way we can normalize processing later
+    if (child.geometry.attributes.position.isInterleavedBufferAttribute) {
+      geometry_to_add.setAttribute('position', child.geometry.attributes.position.clone())
+      geometry_to_add.setAttribute('normal', child.geometry.attributes.normal.clone())
+      geometry_to_add.setAttribute('uv', child.geometry.attributes.uv.clone())
+
+      // set uv2 if it exists
+      if (child.geometry.attributes.uv2 !== undefined) {
+        geometry_to_add.setAttribute('uv2', child.geometry.attributes.uv2.clone())
+      }
+
+      // remove skinIndex and skinWeight if they exist
+      if (child.geometry.attributes.skinIndex !== undefined) {
+        geometry_to_add.deleteAttribute('skinIndex')
+      }
+      if (child.geometry.attributes.skinWeight !== undefined) {
+        geometry_to_add.deleteAttribute('skinWeight')
+      }
+    }
+    return geometry_to_add
+  }
+
+  // function that goes through all our geometry data and calculates how many triangles we have
+  public static calculate_mesh_metrics (buffer_geometry: BufferGeometry[]): { vertex_count: number, triangle_count: number, objects_count: number } {
+    let triangle_count = 0
+    let vertex_count = 0
+
+    // calculate all the loaded mesh data
+    buffer_geometry.forEach((geometry) => {
+      triangle_count += geometry.attributes.position.count / 3
+      vertex_count += geometry.attributes.position.count
+    })
+
+    return { vertex_count, triangle_count, objects_count: buffer_geometry.length }
+  }
+
   public static calculate_bounding_box (scene_object: Scene | Group<Object3DEventMap>): Box3 {
     let bounding_box: Box3 = new Box3()
 
@@ -89,6 +175,24 @@ export class ModelCleanupUtility {
         mesh_obj.geometry.translate(dx, dy, dz)
         mesh_obj.geometry.computeBoundingBox()
         mesh_obj.geometry.computeBoundingSphere()
+      }
+    })
+  }
+
+  /**
+   * Rotate all geometry data in the model by the given angle (in degrees) around the specified axis.
+   * This directly modifies the geometry vertices.
+   */
+  public static rotate_model_geometry (mesh_data: Scene | Group<Object3DEventMap>, axis: 'x' | 'y' | 'z', angle: number): void {
+    const radians = MathUtils.degToRad(angle)
+    mesh_data.traverse((obj: Object3D) => {
+      if (obj.type === 'Mesh') {
+        const mesh = obj as Mesh
+        mesh.geometry.rotateX(axis === 'x' ? radians : 0)
+        mesh.geometry.rotateY(axis === 'y' ? radians : 0)
+        mesh.geometry.rotateZ(axis === 'z' ? radians : 0)
+        mesh.geometry.computeBoundingBox()
+        mesh.geometry.computeBoundingSphere()
       }
     })
   }
