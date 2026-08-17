@@ -6,6 +6,8 @@ import { AnimationUtility } from '../../lib/processes/animations-listing/Animati
 import { type AnimationExportSelection } from '../../lib/processes/animations-listing/interfaces/AnimationExportSelection'
 import { type DownloadSettings, ExportContents, ExportFormat, type FbxExportPreset } from '../../lib/processes/export-to-file/DownloadSettings'
 import { ExportBoneNamingService } from '../../lib/processes/export-to-file/ExportBoneNamingService'
+import { ExportHierarchyService } from '../../lib/processes/export-to-file/ExportHierarchyService'
+import { GlbSkinCleanupService } from '../../lib/processes/export-to-file/GlbSkinCleanupService'
 import { FbxTextureCompatibilityService } from '../../lib/processes/export-to-file/FbxTextureCompatibilityService'
 
 export class StepExportRetargetedAnimations extends EventTarget {
@@ -69,9 +71,7 @@ export class StepExportRetargetedAnimations extends EventTarget {
     )
 
     const skeleton_only = download_settings.export_contents() === ExportContents.Skeleton
-    const objects_to_export: Object3D[] = skeleton_only
-      ? Array.from(new Set(skinned_meshes.map((mesh) => mesh.skeleton.bones[0])))
-      : skinned_meshes
+    const objects_to_export: Object3D[] = ExportHierarchyService.collect_objects_to_export(skinned_meshes, skeleton_only)
 
     const original_parents = new Map<Object3D, Object3D | null>()
 
@@ -133,7 +133,8 @@ export class StepExportRetargetedAnimations extends EventTarget {
         (result: ArrayBuffer | { [key: string]: unknown }) => {
           // Handle the result of the export
           if (result instanceof ArrayBuffer) {
-            this.save_array_buffer(result, `${file_name}.glb`)
+            const cleaned_result = GlbSkinCleanupService.remove_skin_skeleton_properties(result)
+            this.save_array_buffer(cleaned_result, `${file_name}.glb`)
             resolve() // Resolve the promise when the export is complete
           } else {
             console.log('ERROR: result is not an instance of ArrayBuffer')

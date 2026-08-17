@@ -422,6 +422,22 @@ class GeometryParser {
 
                 }
 
+                // Skinning assumes the four weights on a vertex add up to 1. FBX files
+                // do not guarantee that, and dropping the extra influences above makes
+                // the total smaller still, which pulls those vertices toward the origin
+                // once the mesh is posed or exported to glTF.
+                const weightTotal = weights[0] + weights[1] + weights[2] + weights[3];
+
+                if (weightTotal > 0) {
+
+                    for (let i = 0; i < 4; ++i) {
+
+                        weights[i] = weights[i] / weightTotal;
+
+                    }
+
+                }
+
                 for (let i = 0; i < 4; ++i) {
 
                     faceWeights.push(weights[i]);
