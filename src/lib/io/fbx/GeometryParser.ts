@@ -285,6 +285,13 @@ class GeometryParser {
                 // loop over the bone's vertex indices and weights
                 rawBone.indices.forEach(function (index: number, j: number) {
 
+                    // Skin clusters can list vertices with a weight of exactly 0 (some
+                    // exporters write the full cluster membership). Carrying those through
+                    // would pair a real bone id with a zero weight, which glTF validators
+                    // reject on export (ACCESSOR_JOINTS_USED_ZERO_WEIGHT). Dropping them
+                    // here lets the padding below fill the slot with joint 0 instead.
+                    if (rawBone.weights[j] === 0) return;
+
                     if (geoInfo.weightTable[index] === undefined) geoInfo.weightTable[index] = [];
 
                     geoInfo.weightTable[index].push({
