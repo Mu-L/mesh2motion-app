@@ -22,12 +22,23 @@ export class Retargeter {
   private animation_frame_id: number | null = null
   private last_time: number = 0
 
+  // corrective rotation applied to top-level target bones (bones with no bone parent).
+  // useful when the imported rig has no root bone and the pelvis rest orientation
+  // leaves the character tilted (for example face planting after retargeting)
+  private root_correction_quat: THREE.Quaternion = new THREE.Quaternion() // identity = no correction
+  private has_root_correction: boolean = false
+  private readonly top_level_bones: THREE.Bone[] = []
+
   constructor (source_rig: Rig, target_rig: Rig, clip: THREE.AnimationClip) {
     this.srcRig = source_rig
     this.tarRig = target_rig
     this.clip = clip
 
     this.pose = this.tarRig.tpose.clone()
+
+    // cache the bones that sit at the top of the hierarchy (no Bone parent).
+    // these are the bones a global rig correction must be applied to
+    this.top_level_bones = this.tarRig.skel.bones.filter((bone) => bone.parent?.type !== 'Bone')
 
     this.action = this.mixer.clipAction(this.clip, this.srcRig.skel.bones[0])
     this.action.play()
@@ -63,6 +74,38 @@ export class Retargeter {
 
     // Apply working pose to 3JS skeleton for rendering
     this.pose.toSkeleton(this.tarRig.skel)
+
+    // apply any global rig correction last so it rotates the whole skeleton
+    this.apply_root_correction()
+  }
+
+  /**
+   * Sets a corrective rotation (in degrees) around the X axis that is applied to
+   * the top-level target bone(s) on every update. Use 0 to clear the correction.
+   * @param degrees rotation around the X axis in degrees (for example -90 or 90)
+   */
+  public set_root_correction_x (degrees: number): void {
+    this.root_correction_quat.setFromAxisAngle(new THREE.Vector3(1, 0, 0), degrees * Math.PI / 180)
+    this.has_root_correction = degrees !== 0
+  }
+
+  /**
+   * Rotates every top-level target bone by the root correction quaternion.
+   * Since these bones have no bone parent, this rigidly rotates the entire rig.
+   * Both the rotation and position are transformed so baked root motion follows
+   * the corrected orientation.
+   */
+  private apply_root_correction (): void {
+    if (!this.has_root_correction) {
+      return
+    }
+
+    this.top_level_bones.forEach((bone) => {
+      // fresh objects are intentionally not used here: premultiply/applyQuaternion
+      // mutate the bone transform in place, so no shared temp vector aliasing issues
+      bone.quaternion.premultiply(this.root_correction_quat)
+      bone.position.applyQuaternion(this.root_correction_quat)
+    })
   }
 
   /**

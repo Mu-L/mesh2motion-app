@@ -32,6 +32,10 @@ export class RetargetAnimationListing extends EventTarget {
 
   private export_button: HTMLButtonElement | null = null
 
+  // tracks which animation is currently playing so we can re-play it when
+  // settings (like the root rotation correction) change
+  private current_playing_index: number = -1
+
   constructor (theme_manager: ThemeManager, download_settings: DownloadSettings) {
     super()
     this.theme_manager = theme_manager
@@ -199,6 +203,8 @@ export class RetargetAnimationListing extends EventTarget {
     const animation_pair = this.animation_clips_loaded[index]
     const display_clip = animation_pair.display_animation_clip
 
+    this.current_playing_index = index
+
     // Stop all current actions
     this.animation_mixer.stopAllAction()
 
@@ -252,6 +258,19 @@ export class RetargetAnimationListing extends EventTarget {
         const show_selected_only = target.value === 'selected'
         this.animation_search?.set_show_selected_only(show_selected_only)
       })
+    })
+
+    // global rig rotation correction. stored on the shared service so the
+    // retargeter picks it up when clips are retargeted for playback/export,
+    // then re-play the current animation so the change is visible immediately
+    const root_rotation_correction_select = document.getElementById('root-rotation-correction-select') as HTMLSelectElement
+    root_rotation_correction_select?.addEventListener('change', () => {
+      const degrees: number = Number(root_rotation_correction_select.value ?? 0)
+      AnimationRetargetService.getInstance().set_root_correction_x_degrees(degrees)
+
+      if (this.current_playing_index >= 0) {
+        this.play_animation(this.current_playing_index)
+      }
     })
 
     // event listener for select all / deselect all button

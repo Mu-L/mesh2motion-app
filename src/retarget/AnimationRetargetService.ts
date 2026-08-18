@@ -28,6 +28,19 @@ export class AnimationRetargetService {
   private target_mapping_type: TargetBoneMappingType = TargetBoneMappingType.Custom
   private bone_mappings: Map<string, string> = new Map<string, string>()
 
+  // corrective X-axis rotation (degrees) applied to the whole target rig during
+  // human swing-twist retargeting. Helps rigs that have no root bone and whose
+  // pelvis rest orientation leaves the character tilted (face planting)
+  private root_correction_x_degrees: number = 0
+
+  public set_root_correction_x_degrees (degrees: number): void {
+    this.root_correction_x_degrees = degrees
+  }
+
+  public get_root_correction_x_degrees (): number {
+    return this.root_correction_x_degrees
+  }
+
   public set_bone_mappings (mappings: Map<string, string>): void {
     this.bone_mappings = mappings
   }
@@ -217,6 +230,10 @@ export class AnimationRetargetService {
     }
 
     const retargeter: Retargeter = new Retargeter(source_rig, target_rig, source_clip)
+
+    // apply any global rig correction the user has set (fixes tilted rigs that
+    // have no root bone, only a pelvis bone at the top of the hierarchy)
+    retargeter.set_root_correction_x(this.root_correction_x_degrees)
 
     // TODO: experiment with the additives later with T-pose correction
     // retargeter.additives.push(
