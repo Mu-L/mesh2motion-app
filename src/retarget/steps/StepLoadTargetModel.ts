@@ -128,14 +128,6 @@ export class StepLoadTargetModel extends EventTarget {
     }
   }
 
-  private fix_fbx_mixamo_bones (): void {
-    // TODO: The FBX files for Mixamo do something weird with the bone hieararchy in three.js.
-    // The root bone is is the "hips" bone, and the first child of the hips bone is also named "hips".
-    // This is messing up stuff like the skeleton helper and probably the animations by assigning keyframes in the wrong way.
-    // The root hips bone is not in the "bones list" with the skeleton data, so I am not sure why that is there. I might have to look into the FBX loader
-    // class to see what is going on.
-  }
-
   /**
    * Some FBX files contain multiple disconnected bone hierarchies (multiple
    * root bones). Mesh2Motion only supports a single hierarchy, so the user is
@@ -179,7 +171,8 @@ export class StepLoadTargetModel extends EventTarget {
 
     // if the largest dimension is over 20, scale the entire scene down to be
     const target_height: number = 1.5 // in meters
-    if (largest_dimension > 20) {
+
+    if (largest_dimension > 20 || largest_dimension < 0.1) {
       // calculate scale factor
       const scale_factor = target_height / largest_dimension
       console.log('scaling model down because of ', largest_dimension)

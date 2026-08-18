@@ -1,4 +1,4 @@
-import { type Scene, Group, Skeleton, type SkinnedMesh, type Bone, type Object3D } from 'three'
+import { type Scene, Group, Matrix4, Skeleton, type SkinnedMesh, type Bone, type Object3D } from 'three'
 import { ModalDialog } from '../lib/ModalDialog.ts'
 
 export interface TrackNameParts {
@@ -42,14 +42,43 @@ export class RetargetUtils {
   }
 
   /**
-   * Resets all SkinnedMeshes in the group to their rest pose
+   * Resets all SkinnedMeshes in the group to their rest pose.
+   *
+   * This is a parent-aware version of Skeleton.pose(). The native pose() writes
+   * the bind-time WORLD matrix into root bone locals without accounting for the
+   * armature node's own transform, so the armature scale/rotation gets applied a
+   * second time on the next updateMatrixWorld (e.g. an armature with scale 0.01
+   * makes the model render at 1/100th the size the bounding box reports).
    */
   static reset_skinned_mesh_to_rest_pose (skinned_meshes_group: Scene): void {
+    // ensure non-bone parent (armature) world matrices are current
+    skinned_meshes_group.updateMatrixWorld(true)
+
+    const parent_inverse = new Matrix4()
+
     skinned_meshes_group.traverse((child) => {
       if (child.type === 'SkinnedMesh') {
         const skinned_mesh = child as SkinnedMesh
         const skeleton: Skeleton = skinned_mesh.skeleton
-        skeleton.pose()
+
+        // first pass: recover the bind-time world matrices
+        skeleton.bones.forEach((bone, index) => {
+          bone.matrixWorld.copy(skeleton.boneInverses[index]).invert()
+        })
+
+        // second pass: convert bind world matrices into bone-local matrices,
+        // dividing out whatever transform the parent (bone or armature) has
+        skeleton.bones.forEach((bone) => {
+          if (bone.parent !== null) {
+            parent_inverse.copy(bone.parent.matrixWorld).invert()
+            bone.matrix.copy(parent_inverse).multiply(bone.matrixWorld)
+          } else {
+            bone.matrix.copy(bone.matrixWorld)
+          }
+
+          bone.matrix.decompose(bone.position, bone.quaternion, bone.scale)
+        })
+
         skinned_mesh.updateMatrixWorld(true)
       }
     })
