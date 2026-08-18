@@ -114,6 +114,8 @@
 
                                 <button id="auto-map-button" class="secondary-button" style="display: none;">Auto-Map</button>
                                 <button id="clear-mappings-button" class="secondary-button" style="display: none;">Clear Mappings</button>
+                                <button id="root-rotation-correction-button" class="secondary-button"
+                                    data-tippy-content="Cycle the global X-axis correction for tilted rigs. Useful when the imported rig has no root bone above the pelvis.">Fix Tilt: 0°</button>
                             </div>
                             
                             <span id="target-bones-list-container"  >
@@ -174,16 +176,6 @@
                     <!-- Select all / Deselect all button and animation count -->
                     <div style="display: flex; gap: 1rem; align-items: center; margin-top: 0.5rem; justify-content: space-between;">
                         <button id="toggle-select-all-animations" class="secondary-button">Select All</button>
-
-
-                        <!-- global rig rotation correction for tilted rigs -->
-                        <select id="root-rotation-correction-select" class="button"
-                            data-tippy-content="If the retargeted animation is tilted (for example the character face plants), apply a global X-axis rotation to the whole rig. Useful for rigs that have no root bone above the pelvis.">
-                            <option value="0" selected>X Rotation: 0°</option>
-                            <option value="90">X Rotation: 90°</option>
-                            <option value="-90">X Rotation: -90°</option>
-                            <option value="180">X Rotation: 180°</option>
-                        </select>
 
 
                         <div id="animation-listing-count" style="white-space: nowrap;">0 animations</div>
