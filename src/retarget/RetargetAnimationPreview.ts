@@ -126,6 +126,8 @@ export class RetargetAnimationPreview extends EventTarget {
                 const position_tracking_bone_name: string | undefined = 
                 RigConfig.by_skeleton_type(skeleton_type)?.position_tracking_bone_name
 
+                console.log('should be keeping this bone for position tracking', position_tracking_bone_name)
+
                 // Clean up the animation track data before using it
                 // This removes unnecessary position tracks and keeps only rotation data
                 AnimationUtility.clean_track_data([this.current_animation_clip], position_tracking_bone_name)
@@ -158,6 +160,16 @@ export class RetargetAnimationPreview extends EventTarget {
     // Stop any currently playing animation
     this.animation_mixer.stopAllAction()
 
+    // with no mappings there is nothing to retarget, so show the rest pose instead of the source clip
+    if (!this.has_something_to_retarget()) {
+      this.retargeted_animation_clip = null
+      const target_armature: Scene | null = AnimationRetargetService.getInstance().get_target_armature()
+      if (target_armature !== null) {
+        RetargetUtils.reset_skinned_mesh_to_rest_pose(target_armature)
+      }
+      return
+    }
+
     // Create retargeted animation clip using shared service
     this.retargeted_animation_clip = AnimationRetargetService.getInstance().retarget_animation_clip(
       this.current_animation_clip
@@ -166,13 +178,29 @@ export class RetargetAnimationPreview extends EventTarget {
     this.play_default_animation()
   }
 
+  // identical rigs need no mappings, everything else needs at least one
+  private has_something_to_retarget (): boolean {
+    const retarget_service = AnimationRetargetService.getInstance()
+
+    if (retarget_service.get_bone_mappings().size > 0) {
+      return true
+    }
+
+    return RetargetUtils.are_source_and_target_bones_identical(
+      retarget_service.get_source_armature(),
+      retarget_service.get_target_armature()
+    )
+  }
+
   private play_default_animation (): void {
-    if (this.retargeted_animation_clip === null) {
+    const retargeted_clip: AnimationClip | null = this.retargeted_animation_clip
+    if (retargeted_clip === null) {
       console.error('retargeting animation clip is null while playing default animation.')
       return
     }
 
-    if (this.animation_mixer === null) {
+    const animation_mixer: AnimationMixer | null = this.animation_mixer
+    if (animation_mixer === null) {
       console.error('Animation mixer is null while playing default animation.')
       return
     }
@@ -180,7 +208,7 @@ export class RetargetAnimationPreview extends EventTarget {
     // Apply the retargeted animation to all target skinned meshes
     const skinned_meshes: SkinnedMesh[] = AnimationRetargetService.getInstance().get_target_skinned_meshes()
     skinned_meshes.forEach((skinned_mesh) => {
-      const action: AnimationAction = this.animation_mixer.clipAction(this.retargeted_animation_clip, skinned_mesh)
+      const action: AnimationAction = animation_mixer.clipAction(retargeted_clip, skinned_mesh)
       action.reset()
       action.play() // should loop automatically
     })
