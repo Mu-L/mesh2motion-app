@@ -24,7 +24,6 @@ export class StepBoneMapping extends EventTarget {
   private clear_mappings_button: HTMLButtonElement | null = null
   private auto_map_button: HTMLButtonElement | null = null
   private view_bone_tree_button: HTMLButtonElement | null = null
-  private root_rotation_correction_button: HTMLButtonElement | null = null
   private readonly root_rotation_correction_degrees: number[] = [0, 90, -90, 180]
   private root_rotation_correction_index: number = 0
   private source_bone_count: HTMLSpanElement | null = null
@@ -46,8 +45,7 @@ export class StepBoneMapping extends EventTarget {
     this.clear_mappings_button = document.getElementById('clear-mappings-button') as HTMLButtonElement
     this.auto_map_button = document.getElementById('auto-map-button') as HTMLButtonElement
     this.view_bone_tree_button = document.getElementById('view-bone-tree-button') as HTMLButtonElement
-    this.root_rotation_correction_button = document.getElementById('root-rotation-correction-button') as HTMLButtonElement
-
+   
     // if we get a match, show what type of match we got on the UI for feedback
     this.auto_bone_map_match_display = document.getElementById('auto-bone-map-match') as HTMLSpanElement
 
@@ -75,14 +73,6 @@ export class StepBoneMapping extends EventTarget {
       // Add event listener for auto-map button
       this.auto_map_button?.addEventListener('click', () => {
         this.auto_map_bones()
-      })
-
-      this.root_rotation_correction_button?.addEventListener('click', () => {
-        this.root_rotation_correction_index = (this.root_rotation_correction_index + 1) % this.root_rotation_correction_degrees.length
-        const degrees: number = this.root_rotation_correction_degrees[this.root_rotation_correction_index]
-        AnimationRetargetService.getInstance().set_root_correction_x_degrees(degrees)
-        this.update_root_rotation_correction_button()
-        this.dispatchEvent(new CustomEvent('bone-mappings-changed'))
       })
 
       // Filter source bones as user types
@@ -393,14 +383,6 @@ export class StepBoneMapping extends EventTarget {
   private update_auto_map_button_visibility (): void {
     if (this.auto_map_button === null) return
     this.auto_map_button.style.display = this.has_both_skeletons() ? 'block' : 'none'
-  }
-
-  private update_root_rotation_correction_button (): void {
-    if (this.root_rotation_correction_button === null) return
-
-    const degrees: number = this.root_rotation_correction_degrees[this.root_rotation_correction_index]
-    this.root_rotation_correction_button.textContent = `Fix Tilt: ${degrees}°`
-    this.root_rotation_correction_button.setAttribute('aria-label', `Set root X rotation correction to ${degrees} degrees`)
   }
 
   private update_view_bone_tree_button_visibility (): void {
