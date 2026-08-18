@@ -128,8 +128,7 @@ export class RetargetAnimationPreview extends EventTarget {
 
                 // Clean up the animation track data before using it
                 // This removes unnecessary position tracks and keeps only rotation data
-                AnimationUtility.clean_track_data([this.current_animation_clip],
-                  skeleton_type, position_tracking_bone_name)
+                AnimationUtility.clean_track_data([this.current_animation_clip], position_tracking_bone_name)
               }
               this.update_preview_animation()
               resolve()

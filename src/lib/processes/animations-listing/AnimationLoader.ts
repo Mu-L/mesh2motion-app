@@ -242,7 +242,7 @@ export class AnimationLoader extends EventTarget {
     RigConfig.by_skeleton_type(this.skeleton_type)?.position_tracking_bone_name
 
     // Clean track data (remove position tracks except for specific cases)
-    AnimationUtility.clean_track_data(cloned_animations, this.skeleton_type, position_tracking_bone_name)
+    AnimationUtility.clean_track_data(cloned_animations, position_tracking_bone_name)
 
     // Apply skeleton scaling to position keyframes
     AnimationUtility.apply_skeleton_scale_to_position_keyframes(cloned_animations, skeleton_scale)

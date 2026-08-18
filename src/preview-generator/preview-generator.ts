@@ -141,7 +141,7 @@ class PreviewGenerator {
           const position_tracking_bone_name: string | undefined = 
             RigConfig.by_skeleton_type(SkeletonType.Human)?.position_tracking_bone_name
             
-          AnimationUtility.clean_track_data(this.animation_clips, SkeletonType.Human, position_tracking_bone_name)
+          AnimationUtility.clean_track_data(this.animation_clips, position_tracking_bone_name)
         }
 
         const clip = this.animation_clips[0]

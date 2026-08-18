@@ -1,7 +1,6 @@
 import { AnimationClip, Quaternion, Vector3, type KeyframeTrack, type QuaternionKeyframeTrack } from 'three'
 import type { TransformedAnimationClipPair } from './interfaces/TransformedAnimationClipPair'
 import { RigConfig } from '../../RigConfig'
-import { SkeletonType } from '../../enums/SkeletonType'
 
 export class AnimationUtility {
   // when we scaled the skeleton itself near the beginning, we kept track of that
@@ -51,29 +50,24 @@ export class AnimationUtility {
   /// Removes position tracks from animation clips, keeping only rotation tracks.
   /// @param animation_clips - The animation clips to modify.
   /// @param preserve_root_position - Whether to keep the root position track.
-  static clean_track_data (animation_clips: AnimationClip[], skeleton_type: SkeletonType,
-    position_tracking_bone_name: string | undefined  ): void {
+  static clean_track_data (animation_clips: AnimationClip[], position_tracking_bone_name: string | undefined): void {
   
     animation_clips.forEach((animation_clip: AnimationClip) => {
       
       // does the animation clip name include "RM". This indicates a root motion clip and we can keep the root position track
       const preserve_root_position: boolean = animation_clip.name.toLowerCase().endsWith('rm')
       
-      // remove all position nodes except root
-      let rotation_tracks: KeyframeTrack[]
-      if (preserve_root_position) {
-        rotation_tracks = animation_clip.tracks
-          .filter((x: KeyframeTrack) => x.name.includes('quaternion') ||
-          x.name.toLowerCase().includes(position_tracking_bone_name +  '.position') ||
-          x.name.toLowerCase().includes('root.position'))
-      } else {
-        rotation_tracks = animation_clip.tracks
-          .filter((x: KeyframeTrack) => x.name.includes('quaternion') ||
-          x.name.toLowerCase().includes(position_tracking_bone_name +  '.position'))
-      }
-
-      animation_clip.tracks = rotation_tracks // update track data
+      // remove all position nodes except root and the position tracking bone (e.g. pelvis for human)
+      animation_clip.tracks = animation_clip.tracks.filter((track: KeyframeTrack) =>
+        AnimationUtility.is_rotation_or_position_tracking_track(track, position_tracking_bone_name) ||
+        (preserve_root_position && track.name.toLowerCase().includes('root.position')))
     })
+  }
+
+  private static is_rotation_or_position_tracking_track (track: KeyframeTrack,
+    position_tracking_bone_name: string | undefined): boolean {
+    return track.name.includes('quaternion') ||
+      track.name.toLowerCase().includes(position_tracking_bone_name + '.position')
   }
 
   static apply_arm_extension_warp (animation_clips: TransformedAnimationClipPair[], percentage: number): void {
