@@ -12,6 +12,7 @@ import { ThemeManager } from '../lib/ThemeManager.ts'
 import { AnimationUtility } from '../lib/processes/animations-listing/AnimationUtility.ts'
 import { DOMUtilities } from '../lib/DOMUtilities.ts'
 import { SkeletonType } from '../lib/enums/SkeletonType.ts'
+import { RigConfig } from '../lib/RigConfig.ts'
 
 class PreviewGenerator {
   private readonly renderer_: THREE.WebGLRenderer
@@ -137,7 +138,10 @@ class PreviewGenerator {
         // TODO: with cleaning up data, the fox sitting has a weird height offset
         // I would think the cleanup should work with all skeleton types
         if (file_to_load.includes('human')) {
-          AnimationUtility.clean_track_data(this.animation_clips, SkeletonType.Human )
+          const position_tracking_bone_name: string | undefined = 
+            RigConfig.by_skeleton_type(SkeletonType.Human)?.position_tracking_bone_name
+            
+          AnimationUtility.clean_track_data(this.animation_clips, SkeletonType.Human, position_tracking_bone_name)
         }
 
         const clip = this.animation_clips[0]

@@ -51,18 +51,16 @@ export class AnimationUtility {
   /// Removes position tracks from animation clips, keeping only rotation tracks.
   /// @param animation_clips - The animation clips to modify.
   /// @param preserve_root_position - Whether to keep the root position track.
-  static clean_track_data (animation_clips: AnimationClip[], skeleton_type: SkeletonType): void {
+  static clean_track_data (animation_clips: AnimationClip[], skeleton_type: SkeletonType,
+    position_tracking_bone_name: string | undefined  ): void {
+  
     animation_clips.forEach((animation_clip: AnimationClip) => {
-      // remove all position nodes except root
-      let rotation_tracks: KeyframeTrack[] = []
-
+      
       // does the animation clip name include "RM". This indicates a root motion clip and we can keep the root position track
       const preserve_root_position: boolean = animation_clip.name.toLowerCase().endsWith('rm')
-
-      // get position tracking bone name for normal movement (probably hips or head in the case of a snake)
-      const position_tracking_bone_name: string | undefined = 
-        RigConfig.by_skeleton_type(skeleton_type)?.position_tracking_bone_name
-
+      
+      // remove all position nodes except root
+      let rotation_tracks: KeyframeTrack[]
       if (preserve_root_position) {
         rotation_tracks = animation_clip.tracks
           .filter((x: KeyframeTrack) => x.name.includes('quaternion') ||

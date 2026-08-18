@@ -122,11 +122,14 @@ export class RetargetAnimationPreview extends EventTarget {
               if (this.current_animation_clip !== null) {
                 console.log('Loaded animation:', this.current_animation_clip.name)
 
+                const skeleton_type = AnimationRetargetService.getInstance().get_skeleton_type()
+                const position_tracking_bone_name: string | undefined = 
+                RigConfig.by_skeleton_type(skeleton_type)?.position_tracking_bone_name
+
                 // Clean up the animation track data before using it
                 // This removes unnecessary position tracks and keeps only rotation data
                 AnimationUtility.clean_track_data([this.current_animation_clip],
-                  AnimationRetargetService.getInstance().get_skeleton_type()
-                )
+                  skeleton_type, position_tracking_bone_name)
               }
               this.update_preview_animation()
               resolve()
