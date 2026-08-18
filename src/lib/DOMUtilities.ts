@@ -53,7 +53,7 @@ export class DOMUtilities {
       step: '0.1'
     },
     floor_grid_enabled: true,
-    solid_background_enabled: false
+    solid_background_enabled: true
   }
 
   static readonly download_control_defaults: DownloadControlConfig = {

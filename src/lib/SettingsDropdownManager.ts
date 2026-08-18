@@ -1,4 +1,5 @@
 import { UI } from './UI'
+import { DOMUtilities } from './DOMUtilities'
 import { type SceneEnvironmentManager } from './SceneEnvironmentManager'
 
 export class SettingsDropdownManager {
@@ -81,13 +82,17 @@ export class SettingsDropdownManager {
       return
     }
 
+    // keep the checkbox and body class in sync with the configured default on startup
+    solid_background_toggle.checked = DOMUtilities.settings_defaults.solid_background_enabled
+    this.apply_solid_background(solid_background_toggle.checked)
+
     solid_background_toggle.addEventListener('change', () => {
-      if (solid_background_toggle.checked) {
-        document.body.classList.add('solid-background')
-      } else {
-        document.body.classList.remove('solid-background')
-      }
+      this.apply_solid_background(solid_background_toggle.checked)
     })
+  }
+
+  private apply_solid_background (is_enabled: boolean): void {
+    document.body.classList.toggle('solid-background', is_enabled)
   }
 
   private initialize_light_intensity_setting (): void {
