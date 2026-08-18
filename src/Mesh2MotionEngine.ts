@@ -321,12 +321,6 @@ export class Mesh2MotionEngine {
     return this.mesh_drag_bone_placement.is_dragging()
   }
 
-  private show_skin_failure_message (bone_names_with_errors: string[], error_point_positions: Vector3[]): void {
-    // add the bone vertices as X markers to debugging object
-    const error_markers: Group = Generators.create_x_markers(error_point_positions, 0.02, 0xff0000)
-    this.debugging_visual_object.add(error_markers)
-  }
-
   private update_current_process_step (process_step: ProcessStep): void {
     switch (process_step) {
       case ProcessStep.LoadModel:

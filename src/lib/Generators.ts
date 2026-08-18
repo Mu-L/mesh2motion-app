@@ -1,7 +1,7 @@
 import {
   PerspectiveCamera, DoubleSide, FrontSide, DirectionalLight, GridHelper,
   Bone, MeshBasicMaterial, Skeleton, AmbientLight, PlaneGeometry, Mesh,
-  SphereGeometry, MeshPhongMaterial, AxesHelper,
+  SphereGeometry, MeshPhongMaterial, AxesHelper, ArrowHelper, ConeGeometry,
   Vector3, BufferGeometry, type Object3D, type WebGLRenderer,
   Group, Line, LineBasicMaterial, BufferAttribute, Vector2
 } from 'three'
@@ -82,10 +82,18 @@ export class Generators {
     axes_helper.name = 'Axes Helper'
     axes_helper.position.copy(new Vector3(0, 0.008, 0)) // offset a bit to avoid z-fighting
 
+    const arrow_length = 0.8
+    const arrow_radius = 0.1
+    const forward_arrow = new ArrowHelper(new Vector3(0, 0, 1), 
+      new Vector3(0, 0.009, 0), arrow_length, 0x5757E6, arrow_radius, arrow_radius)
+
+    forward_arrow.cone.geometry = new ConeGeometry(0.5, 1, 32, 1).translate(0, -0.5, 0)
+    forward_arrow.name = 'Forward Direction Arrow'
+
     // grid display on floor
     const grid_helper: GridHelper = new GridHelper(grid_size, divisions, grid_color, grid_color)
 
-    return [grid_helper, floor_mesh, axes_helper]
+    return [grid_helper, floor_mesh, axes_helper, forward_arrow]
   }
 
 
@@ -122,55 +130,6 @@ export class Generators {
     const skeleton = new Skeleton(bone_list)
     return skeleton
   }
-
-  // create x markers at a location in space
-  static create_x_markers (points: Vector3[], size = 0.1, color = 0xff0000, name = ''): Group {
-    const group = new Group()
-    group.name = `X markers: ${name}`
-
-    const material = new LineBasicMaterial({
-      color,
-      depthTest: false
-    })
-
-    points.forEach(point => {
-      // Create first diagonal line (\ direction)
-      const geometry1 = new BufferGeometry().setFromPoints([
-        new Vector3(point.x - size, point.y - size, point.z),
-        new Vector3(point.x + size, point.y + size, point.z)
-      ])
-      const line1 = new Line(geometry1, material)
-
-      // Create second diagonal line (/ direction)
-      const geometry2 = new BufferGeometry().setFromPoints([
-        new Vector3(point.x - size, point.y + size, point.z),
-        new Vector3(point.x + size, point.y - size, point.z)
-      ])
-      const line2 = new Line(geometry2, material)
-
-      group.add(line1)
-      group.add(line2)
-    })
-
-    return group
-  }
-
-  static create_spheres_for_points (points: Vector3[], color = 0x00ffff, name = ''): Group {
-    const debug_sphere_size: number = 0.006
-    const group = new Group()
-    group.name = `Point display: ${name}`
-
-    const sphere_geometry = new SphereGeometry(debug_sphere_size, 10, 10)
-    const sphere_material = new MeshBasicMaterial({ color, depthTest: false })
-
-    points.forEach(point => {
-      const sphere = new Mesh(sphere_geometry, sphere_material)
-      sphere.position.copy(point) // Position the sphere at the point
-      group.add(sphere)
-    })
-
-    return group
-}
 
   static create_test_plane_mesh (size: number = 0.08, color: number = 0x0000ff): Mesh {
     const plane_width = size
@@ -214,25 +173,6 @@ export class Generators {
     camera.position.y = 5
     camera.position.x = 5
     return camera
-  }
-
-  static create_equidistant_spheres_around_circle (sphere_count = 6, color = 0x00ff00, distance = 0.3) {
-    const plane_points: Mesh[] = []
-    const plane_point_geometry = new SphereGeometry(0.03, 12, 12)
-    const plane_point_material: MeshBasicMaterial = Generators.create_material(true, color)
-
-    for (let i = 0; i < sphere_count; i++) {
-      // have the points go around the plane in an even circle increments
-      const angle = (i / sphere_count) * (Math.PI * 2)
-      const x = Math.cos(angle) * distance
-      const y = Math.sin(angle) * distance
-      const z = 0
-      const point_mesh: Mesh = new Mesh(plane_point_geometry, plane_point_material)
-      point_mesh.position.set(x, y, z)
-      plane_points.push(point_mesh)
-    }
-
-    return plane_points
   }
 
   static create_window_resize_listener (renderer: WebGLRenderer, camera: PerspectiveCamera): void {
