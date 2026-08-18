@@ -185,3 +185,45 @@ h1 {
 #view-bone-tree-button:hover {
     opacity: 1;
 }
+
+/* Root bone selection dialog (multi-skeleton FBX imports) */
+
+.root-bone-selection-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.root-bone-selection-option {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.15rem;
+    width: 100%;
+    text-align: left;
+    padding: 0.6rem 0.8rem;
+    border: 2px solid var(--bg-tertiary);
+    border-radius: 0.25rem;
+    background: var(--bg-primary);
+    cursor: pointer;
+}
+
+.root-bone-selection-option:hover {
+    border-color: var(--primary-color);
+    transform: scale(1.02);
+}
+
+.root-bone-option-name {
+    font-weight: bold;
+}
+
+.root-bone-option-details {
+    opacity: 0.7;
+    font-size: 0.875rem;
+}
+
+.root-bone-selection-actions {
+    margin-top: 1rem;
+    text-align: center;
+}
