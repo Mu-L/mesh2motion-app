@@ -230,11 +230,19 @@ export class AnimationLoader extends EventTarget {
     skeleton_scale: number,
     metadata_override: Partial<AnimationClipMetadata> = {}
   ): TransformedAnimationClipPair[] {
+
+    if(this.skeleton_type === null) {
+      throw new Error('Skeleton type is not set (process_loaded_animations). Cannot process animations.')
+    }
+
     // Deep clone the animations to avoid modifying originals
     const cloned_animations = AnimationUtility.deep_clone_animation_clips(raw_animations)
 
+    const position_tracking_bone_name: string | undefined = 
+    RigConfig.by_skeleton_type(this.skeleton_type)?.position_tracking_bone_name
+
     // Clean track data (remove position tracks except for specific cases)
-    AnimationUtility.clean_track_data(cloned_animations, this.skeleton_type)
+    AnimationUtility.clean_track_data(cloned_animations, position_tracking_bone_name)
 
     // Apply skeleton scaling to position keyframes
     AnimationUtility.apply_skeleton_scale_to_position_keyframes(cloned_animations, skeleton_scale)

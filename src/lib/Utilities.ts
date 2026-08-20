@@ -329,6 +329,24 @@ export class Utility {
     return closest_bone_index
   }
 
+  static get_file_extension (file_path: string): string {
+    const file_name: string | undefined = file_path.split('/').pop() // remove the directory path
+
+    if (file_name === undefined) {
+      console.error('Critical Error: Undefined file extension when loading model')
+      return 'UNDEFINED'
+    }
+
+    const file_extension: string | undefined = file_name?.split('.').pop() // just get last part of the file name
+
+    if (file_extension === undefined) {
+      console.error('Critical Error: File does not have a "." symbol in the name')
+      return 'UNDEFINED'
+    }
+
+    return file_extension
+  }
+
   static parse_input_number (value: string | undefined): number {
     if (value === undefined || value === null) {
       return 0

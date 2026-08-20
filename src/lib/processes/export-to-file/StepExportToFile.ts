@@ -4,6 +4,9 @@ import { FBXExporter } from '@comfyorg/fbx-exporter-three'
 import { type AnimationClip, Scene, type SkinnedMesh, type Object3D } from 'three'
 import { type DownloadSettings, ExportContents, ExportFormat, type FbxExportPreset } from './DownloadSettings.ts'
 import { ExportBoneNamingService } from './ExportBoneNamingService.ts'
+import { ExportHierarchyService } from './ExportHierarchyService.ts'
+import { ExportAnimationCleanupService } from './ExportAnimationCleanupService.ts'
+import { GlbSkinCleanupService } from './GlbSkinCleanupService.ts'
 import { AnimationUtility } from '../animations-listing/AnimationUtility.ts'
 import { type AnimationExportSelection } from '../animations-listing/interfaces/AnimationExportSelection.ts'
 import { FbxTextureCompatibilityService } from './FbxTextureCompatibilityService.ts'
@@ -70,9 +73,12 @@ export class StepExportToFile extends EventTarget {
     // The animation clips still target the bone names, so the selected animations continue
     // to work against the exported skeleton.
     const skeleton_only = download_settings.export_contents() === ExportContents.Skeleton
-    const objects_to_export: Object3D[] = skeleton_only
-      ? Array.from(new Set(skinned_meshes.map((mesh) => mesh.skeleton.bones[0])))
-      : skinned_meshes
+    const objects_to_export: Object3D[] = ExportHierarchyService.collect_objects_to_export(skinned_meshes, skeleton_only)
+
+    // The base animation data can contain tracks for joints the user removed (e.g. fingers),
+    // and keyframe times can contain float32 duplicates that glTF validators reject.
+    // This runs after bone renaming so the track names match the final bone names.
+    ExportAnimationCleanupService.clean_clips_for_export(export_clips, objects_to_export)
 
     // When exporting to a file, we need to temporarily move the exported objects to a new
     // scene. An object can only be part of one scene at a time, so we must move it back to
@@ -151,7 +157,8 @@ export class StepExportToFile extends EventTarget {
         (result: ArrayBuffer) => {
           // Handle the result of the export
           if (result !== null) {
-            this.save_array_buffer(result, `${file_name}.glb`)
+            const cleaned_result = GlbSkinCleanupService.remove_skin_skeleton_properties(result)
+            this.save_array_buffer(cleaned_result, `${file_name}.glb`)
             resolve() // Resolve the promise when the export is complete
           } else {
             console.log('ERROR: result is not an instance of ArrayBuffer')

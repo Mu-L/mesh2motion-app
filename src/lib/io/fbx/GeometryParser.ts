@@ -285,6 +285,13 @@ class GeometryParser {
                 // loop over the bone's vertex indices and weights
                 rawBone.indices.forEach(function (index: number, j: number) {
 
+                    // Skin clusters can list vertices with a weight of exactly 0 (some
+                    // exporters write the full cluster membership). Carrying those through
+                    // would pair a real bone id with a zero weight, which glTF validators
+                    // reject on export (ACCESSOR_JOINTS_USED_ZERO_WEIGHT). Dropping them
+                    // here lets the padding below fill the slot with joint 0 instead.
+                    if (rawBone.weights[j] === 0) return;
+
                     if (geoInfo.weightTable[index] === undefined) geoInfo.weightTable[index] = [];
 
                     geoInfo.weightTable[index].push({
@@ -419,6 +426,22 @@ class GeometryParser {
 
                     weights.push(0);
                     weightIndices.push(0);
+
+                }
+
+                // Skinning assumes the four weights on a vertex add up to 1. FBX files
+                // do not guarantee that, and dropping the extra influences above makes
+                // the total smaller still, which pulls those vertices toward the origin
+                // once the mesh is posed or exported to glTF.
+                const weightTotal = weights[0] + weights[1] + weights[2] + weights[3];
+
+                if (weightTotal > 0) {
+
+                    for (let i = 0; i < 4; ++i) {
+
+                        weights[i] = weights[i] / weightTotal;
+
+                    }
 
                 }
 

@@ -1,9 +1,16 @@
-import { type Scene, Group, Skeleton, type SkinnedMesh, type Bone, type Object3D } from 'three'
+import { type Scene, Group, Matrix4, Skeleton, Vector3, Quaternion, type SkinnedMesh, type Bone, type Object3D } from 'three'
 import { ModalDialog } from '../lib/ModalDialog.ts'
 
 export interface TrackNameParts {
   bone_name: string
   property: string
+}
+
+/** A single bone's local transform, captured while the skeleton is known to be at rest. */
+export interface BoneRestTransform {
+  position: Vector3
+  quaternion: Quaternion
+  scale: Vector3
 }
 
 // eslint-disable-next-line @typescript-eslint/no-extraneous-class
@@ -42,17 +49,63 @@ export class RetargetUtils {
   }
 
   /**
-   * Resets all SkinnedMeshes in the group to their rest pose
+   * Resets all SkinnedMeshes in the group to their rest pose.
+   *
+   * This is a parent-aware version of Skeleton.pose(). The native pose() writes
+   * the bind-time WORLD matrix into root bone locals without accounting for the
+   * armature node's own transform, so the armature scale/rotation gets applied a
+   * second time on the next updateMatrixWorld (e.g. an armature with scale 0.01
+   * makes the model render at 1/100th the size the bounding box reports).
    */
-  static reset_skinned_mesh_to_rest_pose (skinned_meshes_group: Scene): void {
+  static reset_skinned_mesh_to_rest_pose (skinned_meshes_group: Object3D): void {
+    // ensure non-bone parent (armature) world matrices are current
+    skinned_meshes_group.updateMatrixWorld(true)
+
+    const parent_inverse = new Matrix4()
+
     skinned_meshes_group.traverse((child) => {
       if (child.type === 'SkinnedMesh') {
         const skinned_mesh = child as SkinnedMesh
         const skeleton: Skeleton = skinned_mesh.skeleton
-        skeleton.pose()
+
+        // first pass: recover the bind-time world matrices
+        skeleton.bones.forEach((bone, index) => {
+          bone.matrixWorld.copy(skeleton.boneInverses[index]).invert()
+        })
+
+        // second pass: convert bind world matrices into bone-local matrices,
+        // dividing out whatever transform the parent (bone or armature) has
+        skeleton.bones.forEach((bone) => {
+          if (bone.parent !== null) {
+            parent_inverse.copy(bone.parent.matrixWorld).invert()
+            bone.matrix.copy(parent_inverse).multiply(bone.matrixWorld)
+          } else {
+            bone.matrix.copy(bone.matrixWorld)
+          }
+
+          bone.matrix.decompose(bone.position, bone.quaternion, bone.scale)
+        })
+
         skinned_mesh.updateMatrixWorld(true)
       }
     })
+  }
+
+  /**
+   * Three.js pose() fix for calculating bone local transform from bind-time world matrix.
+   * Snapshot every bone's local transform. Call this while the skeleton is known to be at
+   * rest (right after load), because once an animation has played there is no longer a
+   * reliable way to recover the rest pose: the bind matrices in `boneInverses` are in
+   * bind-time space, so dividing them by the *current* parent world reintroduces any
+   * transform the app applied afterwards (for example the import scale set in
+   * StepLoadTargetModel).
+   */
+  static capture_bone_rest_transforms (skeleton: Skeleton): BoneRestTransform[] {
+    return skeleton.bones.map((bone) => ({
+      position: bone.position.clone(),
+      quaternion: bone.quaternion.clone(),
+      scale: bone.scale.clone()
+    }))
   }
 
   /**
@@ -183,8 +236,13 @@ export class RetargetUtils {
    * - Our retargeting path needs stable non-bone root parent world transforms for pose offsets.
    * - This function deep-clones bone hierarchies and recreates detached non-bone root parents using
    *   decomposed world transforms, preventing mutation of live scene bones.
-   */
-  static clone_skeleton (source_skeleton: Skeleton): Skeleton {
+   *
+   * @param rest_transforms rest pose to restore the clone to, from
+   *   `capture_bone_rest_transforms`. Required for correctness: the live skeleton is
+   *   usually mid-animation when this is called (stopAllAction does not restore bone
+   *   locals), and native `Skeleton.pose()` cannot be used to reset it -- see below.
+   */  
+  static clone_skeleton (source_skeleton: Skeleton, rest_transforms: BoneRestTransform[] = []): Skeleton {
     const original_to_clone = new Map<Bone, Bone>()
 
     const root_bones = source_skeleton.bones.filter((bone) =>
@@ -242,7 +300,34 @@ export class RetargetUtils {
 
     const cloned_bone_inverses = source_skeleton.boneInverses.map((inverse) => inverse.clone())
     const cloned_skeleton = new Skeleton(cloned_bones, cloned_bone_inverses)
-    cloned_skeleton.pose()
+
+    // Three.js pose() fix for calculating bone local transform from bind-time world matrix.
+    // Restore the rest pose from the snapshot rather than calling native Skeleton.pose().
+    //
+    // pose() recovers each bind-time WORLD matrix from boneInverses, then for any bone
+    // whose parent is not a Bone it copies that world matrix straight into the bone's
+    // LOCAL matrix without dividing out the parent. Our clone deliberately gives the root
+    // bone a detached parent carrying the armature's full world transform (above), so that
+    // transform ends up applied twice. The root bone's local picks up an extra copy of the
+    // armature rotation, and since every other bone hangs off it the entire rig comes out
+    // rigidly rotated -- a Z-up authored rig (armature at -90 X) lands 90 degrees off.
+    // This is the same defect described on reset_skinned_mesh_to_rest_pose above.
+    if (rest_transforms.length === cloned_bones.length) {
+      cloned_bones.forEach((bone, index) => {
+        bone.position.copy(rest_transforms[index].position)
+        bone.quaternion.copy(rest_transforms[index].quaternion)
+        bone.scale.copy(rest_transforms[index].scale)
+      })
+    } else if (rest_transforms.length > 0) {
+      console.warn('RetargetUtils.clone_skeleton: rest transform count does not match bone ' +
+        `count (${rest_transforms.length} vs ${cloned_bones.length}). Leaving the clone in ` +
+        'its current pose.')
+    }
+
+    // make the clone's world matrices valid so consumers reading them get real values
+    cloned_bones.forEach((bone) => {
+      if (bone.parent?.type !== 'Bone') bone.updateMatrixWorld(true)
+    })
 
     return cloned_skeleton
   }

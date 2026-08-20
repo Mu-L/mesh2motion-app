@@ -24,6 +24,8 @@ export class StepBoneMapping extends EventTarget {
   private clear_mappings_button: HTMLButtonElement | null = null
   private auto_map_button: HTMLButtonElement | null = null
   private view_bone_tree_button: HTMLButtonElement | null = null
+  private readonly root_rotation_correction_degrees: number[] = [0, 90, -90, 180]
+  private root_rotation_correction_index: number = 0
   private source_bone_count: HTMLSpanElement | null = null
   private target_bone_count: HTMLSpanElement | null = null
   private auto_bone_map_match_display: HTMLSpanElement | null = null
@@ -43,7 +45,7 @@ export class StepBoneMapping extends EventTarget {
     this.clear_mappings_button = document.getElementById('clear-mappings-button') as HTMLButtonElement
     this.auto_map_button = document.getElementById('auto-map-button') as HTMLButtonElement
     this.view_bone_tree_button = document.getElementById('view-bone-tree-button') as HTMLButtonElement
-
+   
     // if we get a match, show what type of match we got on the UI for feedback
     this.auto_bone_map_match_display = document.getElementById('auto-bone-map-match') as HTMLSpanElement
 

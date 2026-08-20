@@ -1,6 +1,7 @@
 import {
     AmbientLight,
     Bone,
+    type BufferGeometry,
     ClampToEdgeWrapping,
     Color,
     ColorManagement,
@@ -1404,40 +1405,73 @@ class FBXTreeParser {
 
             const skeleton = skeletons[ID];
 
+            // skeleton.bones is filled in by index as the models are parsed, so a
+            // cluster whose bone model is missing from the file leaves an undefined
+            // hole in the list. Those holes reach the exporters, where an undefined
+            // joint is written out as null and the file is rejected on load
+            // ("/skins/0/joints/null: failed to find index (null)"). Drop the holes
+            // and keep a map of where each cluster ended up, so the skin indices
+            // stored on the geometry can be moved along with them.
+            //
             // Compute bone inverses from TransformLink rather than from the
             // bones' current matrixWorld. The TransformLink matrices represent
             // each bone's global transform at the time the skin weights were
             // painted, which may differ from the scene-reconstructed transforms.
             const boneInverses: Matrix4[] = [];
+            const bones: Bone[] = [];
+            const clusterToBoneIndex: number[] = [];
 
-            for (let i = 0, l = skeleton.bones.length; i < l; i++) {
+            for (let i = 0, l = skeleton.rawBones.length; i < l; i++) {
 
-                const inverse = new Matrix4();
+                const bone = skeleton.bones[i];
 
-                if (skeleton.bones[i] && skeleton.rawBones[i]) {
+                if (!bone) {
 
-                    inverse.copy(skeleton.rawBones[i].transformLink).invert();
+                    clusterToBoneIndex[i] = - 1;
+                    continue;
 
                 }
 
-                boneInverses.push(inverse);
+                clusterToBoneIndex[i] = bones.length;
+                bones.push(bone);
+                boneInverses.push(new Matrix4().copy(skeleton.rawBones[i].transformLink).invert());
 
             }
 
+            const hasMissingBones = bones.length !== skeleton.rawBones.length;
+            const remappedGeometries = new Set();
+
+            if (hasMissingBones) {
+
+                console.warn('THREE.FBXLoader: ' + (skeleton.rawBones.length - bones.length) + ' skin cluster(s) have no bone in this file. Their influences are being dropped.');
+
+            }
+
+            skeleton.bones = bones;
+
             const parents = fbxGlobals.connections.get(parseInt(skeleton.ID))!.parents;
 
-            parents.forEach(function (parent: any) {
+            parents.forEach((parent: any) => {
 
                 if (geometryMap.has(parent.ID)) {
 
                     const geoID = parent.ID;
                     const geoRelationships = fbxGlobals.connections.get(geoID)!
 
-                    geoRelationships.parents.forEach(function (geoConnParent: any) {
+                    geoRelationships.parents.forEach((geoConnParent: any) => {
 
                         if (modelMap.has(geoConnParent.ID)) {
 
                             const model = modelMap.get(geoConnParent.ID);
+
+                            // the skin indices on the geometry are cluster indices, so
+                            // they only line up with the bone list while it is complete
+                            if (hasMissingBones && !remappedGeometries.has(model.geometry)) {
+
+                                remappedGeometries.add(model.geometry);
+                                this.remapSkinIndices(model.geometry, clusterToBoneIndex);
+
+                            }
 
                             // Use the mesh's current matrixWorld as bind matrix.
                             // The BindPose section is intentionally not used here
@@ -1448,7 +1482,7 @@ class FBXTreeParser {
                             // would overwrite the bone inverses computed above.
                             model.updateMatrixWorld(true);
 
-                            model.bind(new Skeleton(skeleton.bones, boneInverses), model.matrixWorld);
+                            model.bind(new Skeleton(bones, boneInverses), model.matrixWorld);
 
                         }
 
@@ -1459,6 +1493,54 @@ class FBXTreeParser {
             });
 
         }
+
+    }
+
+    // Points a geometry's skin indices at the compacted bone list. Influences that
+    // referenced a cluster with no bone are dropped, and what is left is renormalized
+    // so every vertex still sums to a full weight.
+    remapSkinIndices (geometry: BufferGeometry, clusterToBoneIndex: number[]): void {
+
+        const skinIndex = geometry.attributes.skinIndex;
+        const skinWeight = geometry.attributes.skinWeight;
+
+        if (skinIndex === undefined || skinWeight === undefined) return;
+
+        for (let vertex = 0, l = skinIndex.count; vertex < l; vertex++) {
+
+            let weightTotal = 0;
+
+            for (let influence = 0; influence < 4; influence++) {
+
+                const boneIndex = clusterToBoneIndex[skinIndex.getComponent(vertex, influence)];
+
+                if (boneIndex === undefined || boneIndex === - 1) {
+
+                    skinIndex.setComponent(vertex, influence, 0);
+                    skinWeight.setComponent(vertex, influence, 0);
+                    continue;
+
+                }
+
+                skinIndex.setComponent(vertex, influence, boneIndex);
+                weightTotal += skinWeight.getComponent(vertex, influence);
+
+            }
+
+            // a vertex that was only influenced by dropped bones has nothing left to
+            // normalize, and it was not skinned to anything before either, so leave it
+            if (weightTotal === 0) continue;
+
+            for (let influence = 0; influence < 4; influence++) {
+
+                skinWeight.setComponent(vertex, influence, skinWeight.getComponent(vertex, influence) / weightTotal);
+
+            }
+
+        }
+
+        skinIndex.needsUpdate = true;
+        skinWeight.needsUpdate = true;
 
     }
 

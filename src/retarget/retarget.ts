@@ -123,6 +123,7 @@ class RetargetModule {
     // listen for bone mapping update events to update continue button state
     this.step_bone_mapping.addEventListener('bone-mappings-changed', () => {
       this.update_continue_button_state()
+      this.attempt_start_live_preview()
     })
 
     // next button to go to the animation listing step
@@ -209,8 +210,12 @@ class RetargetModule {
   }
 
   private attempt_start_live_preview (): void {
+    // without mappings the source clip would drive any target bone that happens to share a name
+    const has_something_to_retarget: boolean =
+      this.step_bone_mapping.has_bone_mappings() || this.is_source_and_target_rig_identical()
+
     // Only start preview when both skeletons are loaded
-    if (this.step_bone_mapping.has_both_skeletons()) {
+    if (this.step_bone_mapping.has_both_skeletons() && has_something_to_retarget) {
       this.retarget_animation_preview.start_preview().catch((error) => {
         // maybe useful if errors happen in the future for debugging
         console.error('Failed to start preview:', error)
