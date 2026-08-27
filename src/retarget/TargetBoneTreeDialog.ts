@@ -45,7 +45,7 @@ export class TargetBoneTreeDialog {
     const is_flat_hierarchy = target_bones.size > 1 && root_target_bones.length === target_bones.size
     const flat_hierarchy_warning_html = is_flat_hierarchy
       ? `<div class="bone-tree-dialog-warning">
-          ⚠️ Flat hierarchy detected: all bones appear as root bones with no parent-child relationships.
+          ⚠️ Flat hierarchy detected: This could be because there are multiple skinned meshes (which aren't supported). all bones appear as root bones with no parent-child relationships.
           This may indicate the skeleton was exported without hierarchy data (e.g. some FBX exports).
           Retargeting will not work.
         </div>`
