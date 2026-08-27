@@ -1,154 +1,75 @@
 import { describe, it, expect } from 'vitest'
 import { BoneCategoryMapper } from './BoneCategoryMapper'
-import { BoneCategory, type BoneMetadata, BoneSide } from './BoneAutoMapper'
+import { BoneChainResolver, type RawBoneRecord } from './BoneChainResolver'
+import { type BoneMetadata } from './BoneTypes'
 
 /**
- * Helper function to create test bone metadata
+ * BoneCategoryMapper is the exact-name safety net that runs after the canonical
+ * slot pass. Building its input through BoneChainResolver keeps these tests honest -
+ * the old suite hand-fed normalized_name values the real normalizer never produced.
  */
-function create_bone_metadata (
-  name: string,
-  normalized_name: string,
-  side: BoneSide = BoneSide.Center,
-  category: BoneCategory = BoneCategory.Torso
-): BoneMetadata {
-  return { name, normalized_name, side, category }
+function metadata (names: string[]): BoneMetadata[] {
+  const bones: RawBoneRecord[] = names.map((name, i) => ({
+    name,
+    parent_name: i === 0 ? null : names[i - 1]
+  }))
+  return BoneChainResolver.build_metadata(bones)
 }
 
-describe('BoneCategoryMapper', () => {
-  describe('map_torso_bones', () => {
-    it('should map exact matching bone names', () => {
-      const source_bones: BoneMetadata[] = [
-        create_bone_metadata('Spine', 'spine', BoneSide.Center, BoneCategory.Torso),
-        create_bone_metadata('Chest', 'chest', BoneSide.Center, BoneCategory.Torso),
-        create_bone_metadata('Neck', 'neck', BoneSide.Center, BoneCategory.Torso)
-      ]
+describe('BoneCategoryMapper name matching', () => {
+  it('matches bones the two rigs name identically', () => {
+    const source = metadata(['spine_01', 'spine_02', 'custom_prop_a'])
+    const target = metadata(['spine_01', 'custom_prop_a'])
 
-      const target_bones: BoneMetadata[] = [
-        create_bone_metadata('Spine', 'spine', BoneSide.Center, BoneCategory.Torso),
-        create_bone_metadata('Chest', 'chest', BoneSide.Center, BoneCategory.Torso)
-      ]
+    const mappings = BoneCategoryMapper.match_loose_names(source, target, new Map())
 
-      const mappings = BoneCategoryMapper.map_torso_bones(source_bones, target_bones)
-
-      expect(mappings.size).toBe(2)
-      expect(mappings.get('Spine')).toBe('Spine')
-      expect(mappings.get('Chest')).toBe('Chest')
-    })
+    expect(mappings.get('spine_01')).toBe('spine_01')
+    expect(mappings.get('custom_prop_a')).toBe('custom_prop_a')
   })
 
-  describe('map_arm_bones', () => {
-    it('should map exact matching arm bone names', () => {
-      const source_bones: BoneMetadata[] = [
-        create_bone_metadata('LeftShoulder', 'leftshoulder', BoneSide.Left, BoneCategory.Arms),
-        create_bone_metadata('LeftUpperArm', 'leftupperarm', BoneSide.Left, BoneCategory.Arms),
-        create_bone_metadata('RightShoulder', 'rightshoulder', BoneSide.Right, BoneCategory.Arms)
-      ]
+  it('matches across separator and case differences', () => {
+    const source = metadata(['tail_01', 'tail_02'])
+    const target = metadata(['Tail.001', 'Tail.002'])
 
-      const target_bones: BoneMetadata[] = [
-        create_bone_metadata('LeftShoulder', 'leftshoulder', BoneSide.Left, BoneCategory.Arms),
-        create_bone_metadata('RightShoulder', 'rightshoulder', BoneSide.Right, BoneCategory.Arms)
-      ]
+    const mappings = BoneCategoryMapper.match_loose_names(source, target, new Map())
 
-      const mappings = BoneCategoryMapper.map_arm_bones(source_bones, target_bones)
-
-      expect(mappings.size).toBe(2)
-      expect(mappings.get('LeftShoulder')).toBe('LeftShoulder')
-      expect(mappings.get('RightShoulder')).toBe('RightShoulder')
-    })
+    expect(mappings.get('Tail.001')).toBe('tail_01')
+    expect(mappings.get('Tail.002')).toBe('tail_02')
   })
 
-  describe('map_hand_bones', () => {
-    it('should map exact matching hand bone names', () => {
-      const source_bones: BoneMetadata[] = [
-        create_bone_metadata('LeftHand', 'lefthand', BoneSide.Left, BoneCategory.Hands),
-        create_bone_metadata('LeftThumb', 'leftthumb', BoneSide.Left, BoneCategory.Hands),
-        create_bone_metadata('LeftIndex', 'leftindex', BoneSide.Left, BoneCategory.Hands)
-      ]
+  it('will not pair a left bone with a right one', () => {
+    const source = metadata(['wing_01_l'])
+    const target = metadata(['wing_01_r'])
 
-      const target_bones: BoneMetadata[] = [
-        create_bone_metadata('LeftHand', 'lefthand', BoneSide.Left, BoneCategory.Hands),
-        create_bone_metadata('LeftThumb', 'leftthumb', BoneSide.Left, BoneCategory.Hands)
-      ]
-
-      const mappings = BoneCategoryMapper.map_hand_bones(source_bones, target_bones)
-
-      expect(mappings.size).toBe(2)
-      expect(mappings.get('LeftHand')).toBe('LeftHand')
-      expect(mappings.get('LeftThumb')).toBe('LeftThumb')
-    })
+    expect(BoneCategoryMapper.match_loose_names(source, target, new Map()).size).toBe(0)
   })
 
-  describe('map_leg_bones', () => {
-    it('should map exact matching leg bone names', () => {
-      const source_bones: BoneMetadata[] = [
-        create_bone_metadata('LeftThigh', 'leftthigh', BoneSide.Left, BoneCategory.Legs),
-        create_bone_metadata('LeftKnee', 'leftknee', BoneSide.Left, BoneCategory.Legs),
-        create_bone_metadata('RightThigh', 'rightthigh', BoneSide.Right, BoneCategory.Legs)
-      ]
+  it('leaves existing mappings alone and never hands out their source bones twice', () => {
+    const source = metadata(['spine_01', 'spine_02'])
+    const target = metadata(['spine_01', 'spine_02'])
 
-      const target_bones: BoneMetadata[] = [
-        create_bone_metadata('LeftThigh', 'leftthigh', BoneSide.Left, BoneCategory.Legs),
-        create_bone_metadata('RightThigh', 'rightthigh', BoneSide.Right, BoneCategory.Legs)
-      ]
+    // the canonical slot pass already gave spine_01 away to a different target
+    const existing = new Map<string, string>([['spine_02', 'spine_01']])
+    const mappings = BoneCategoryMapper.match_loose_names(source, target, existing)
 
-      const mappings = BoneCategoryMapper.map_leg_bones(source_bones, target_bones)
-
-      expect(mappings.size).toBe(2)
-      expect(mappings.get('LeftThigh')).toBe('LeftThigh')
-      expect(mappings.get('RightThigh')).toBe('RightThigh')
-    })
+    expect(mappings.get('spine_02')).toBe('spine_01')
+    // target spine_01 is left unmapped rather than taking spine_01 a second time
+    expect(mappings.has('spine_01')).toBe(false)
+    expect(new Set(mappings.values()).size).toBe(mappings.size)
   })
 
-  describe('map_wing_bones', () => {
-    it('should map exact matching wing bone names', () => {
-      const source_bones: BoneMetadata[] = [
-        create_bone_metadata('LeftWing1', 'leftwing1', BoneSide.Left, BoneCategory.Wings),
-        create_bone_metadata('LeftWing2', 'leftwing2', BoneSide.Left, BoneCategory.Wings),
-        create_bone_metadata('RightWing1', 'rightwing1', BoneSide.Right, BoneCategory.Wings)
-      ]
+  it('matches only literal name agreement in the exact pass', () => {
+    const source = metadata(['tail_01', 'tail_02'])
+    const target = metadata(['tail_01', 'Tail.002'])
 
-      const target_bones: BoneMetadata[] = [
-        create_bone_metadata('LeftWing1', 'leftwing1', BoneSide.Left, BoneCategory.Wings),
-        create_bone_metadata('RightWing1', 'rightwing1', BoneSide.Right, BoneCategory.Wings)
-      ]
+    const mappings = BoneCategoryMapper.match_exact_names(source, target, new Map())
 
-      const mappings = BoneCategoryMapper.map_wing_bones(source_bones, target_bones)
-
-      expect(mappings.size).toBe(2)
-      expect(mappings.get('LeftWing1')).toBe('LeftWing1')
-      expect(mappings.get('RightWing1')).toBe('RightWing1')
-    })
+    expect(mappings.get('tail_01')).toBe('tail_01')
+    expect(mappings.has('Tail.002')).toBe(false)
   })
 
-  describe('map_tail_bones', () => {
-    it('should map exact matching tail bone names', () => {
-      const source_bones: BoneMetadata[] = [
-        create_bone_metadata('Tail1', 'tail1', BoneSide.Center, BoneCategory.Tail),
-        create_bone_metadata('Tail2', 'tail2', BoneSide.Center, BoneCategory.Tail),
-        create_bone_metadata('Tail3', 'tail3', BoneSide.Center, BoneCategory.Tail)
-      ]
-
-      const target_bones: BoneMetadata[] = [
-        create_bone_metadata('Tail1', 'tail1', BoneSide.Center, BoneCategory.Tail),
-        create_bone_metadata('Tail2', 'tail2', BoneSide.Center, BoneCategory.Tail)
-      ]
-
-      const mappings = BoneCategoryMapper.map_tail_bones(source_bones, target_bones)
-
-      expect(mappings.size).toBe(2)
-      expect(mappings.get('Tail1')).toBe('Tail1')
-      expect(mappings.get('Tail2')).toBe('Tail2')
-    })
-  })
-
-  describe('map_unknown_bones', () => {
-    it('should handle empty unknown bones', () => {
-      const source_bones: BoneMetadata[] = []
-      const target_bones: BoneMetadata[] = []
-
-      const mappings = BoneCategoryMapper.map_unknown_bones(source_bones, target_bones)
-
-      expect(mappings.size).toBe(0)
-    })
+  it('handles empty skeletons', () => {
+    expect(BoneCategoryMapper.match_exact_names([], [], new Map()).size).toBe(0)
+    expect(BoneCategoryMapper.match_loose_names([], [], new Map()).size).toBe(0)
   })
 })

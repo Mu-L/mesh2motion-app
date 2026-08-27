@@ -1,9 +1,10 @@
-import { type BoneMetadata } from './BoneAutoMapper'
+import { type BoneMetadata } from './BoneTypes'
+import { normalized_lookup_key } from './BoneNameTokenizer'
 
 /**
  * MixamoMapper - Direct bone name mapping for Mixamo rigs
  * Source: Mesh2Motion skeleton (hardcoded names)
- * Target: Mixamo skeleton (mixamorig: prefix)
+ * Target: Mixamo skeleton (usually, but not always, carrying a mixamorig prefix)
  */
 export class MixamoMapper {
   /**
@@ -107,12 +108,42 @@ export class MixamoMapper {
   }
 
   /**
-   * Check if the given skeleton is a Mixamo skeleton
-   * @param bones - Bones to check
-   * @returns True if any bone name contains "mixamorig"
+   * The distinctive core of the Mixamo skeleton. Fingers are left out on purpose -
+   * plenty of exports strip them - and so is anything whose name a non-Mixamo rig
+   * might plausibly share.
+   */
+  private static readonly CORE_BONES: string[] = [
+    'mixamorigHips', 'mixamorigSpine', 'mixamorigNeck', 'mixamorigHead',
+    'mixamorigLeftShoulder', 'mixamorigLeftArm', 'mixamorigLeftForeArm', 'mixamorigLeftHand',
+    'mixamorigRightShoulder', 'mixamorigRightArm', 'mixamorigRightForeArm', 'mixamorigRightHand',
+    'mixamorigLeftUpLeg', 'mixamorigLeftLeg', 'mixamorigLeftFoot',
+    'mixamorigRightUpLeg', 'mixamorigRightLeg', 'mixamorigRightFoot'
+  ]
+
+  /** Fraction of CORE_BONES a rig must carry before we treat it as Mixamo */
+  private static readonly CORE_MATCH_THRESHOLD: number = 0.8
+
+  /**
+   * Check if the given skeleton is a Mixamo skeleton.
+   *
+   * The "mixamorig" prefix is definitive when present, but several FBX -> glTF
+   * pipelines strip it, leaving bones named plain "Hips" / "LeftForeArm" /
+   * "LeftHandIndex1". Those are still Mixamo rigs and should still get the exact
+   * table, so fall back to scoring the distinctive core names.
+   *
+   * @param bone_names - target skeleton bone names
    */
   static is_target_valid_skeleton (bone_names: string[]): boolean {
-    return bone_names.some(name => name.toLowerCase().includes('mixamorig'))
+    if (bone_names.some(name => name.toLowerCase().includes('mixamorig'))) {
+      return true
+    }
+
+    const target_keys = new Set<string>(bone_names.map(name => normalized_lookup_key(name)))
+    const matched: number = this.CORE_BONES.filter(
+      core_name => target_keys.has(normalized_lookup_key(core_name))
+    ).length
+
+    return matched / this.CORE_BONES.length >= this.CORE_MATCH_THRESHOLD
   }
 
   /**
@@ -131,20 +162,26 @@ export class MixamoMapper {
   static map_mixamo_bones (source_bones: BoneMetadata[], target_bones: BoneMetadata[]): Map<string, string> {
     const mappings = new Map<string, string>()
 
-    // console.log('=== MIXAMO DIRECT MAPPING ===')
+    // Look targets up by loose key rather than exact name, so a rig whose export
+    // dropped the "mixamorig" prefix or the colon after it still resolves
+    const target_by_loose_key = new Map<string, BoneMetadata>()
+    for (const target_bone of target_bones) {
+      const key: string = normalized_lookup_key(target_bone.name)
+      if (!target_by_loose_key.has(key)) {
+        target_by_loose_key.set(key, target_bone)
+      }
+    }
 
     // For each source bone (Mesh2Motion), find matching target bone (Mixamo)
     for (const source_bone of source_bones) {
       const expected_mixamo_name: string | undefined = this.BONE_MAP[source_bone.name]
+      if (expected_mixamo_name === undefined) continue
 
-      if (expected_mixamo_name !== undefined) {
-        // Find target bone with this Mixamo name
-        const target_bone: BoneMetadata | undefined = target_bones.find(tb => tb.name === expected_mixamo_name)
+      const target_bone: BoneMetadata | undefined =
+        target_by_loose_key.get(normalized_lookup_key(expected_mixamo_name))
 
-        if (target_bone !== undefined) {
-          mappings.set(target_bone.name, source_bone.name)
-          // console.log(`Mapped: ${target_bone.name} -> ${source_bone.name}`)
-        }
+      if (target_bone !== undefined) {
+        mappings.set(target_bone.name, source_bone.name)
       }
     }
 

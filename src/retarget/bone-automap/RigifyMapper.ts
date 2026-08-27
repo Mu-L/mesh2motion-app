@@ -1,4 +1,5 @@
-import { type BoneMetadata } from './BoneAutoMapper'
+import { type BoneMetadata } from './BoneTypes'
+import { normalized_lookup_key } from './BoneNameTokenizer'
 
 /**
  * RigifyMapper - Direct bone name mapping for Blender Rigify rigs
@@ -84,10 +85,13 @@ export class RigifyMapper {
    * Normalize a Rigify bone name for tolerant matching.
    * Different exporters strip or keep dots/underscores (e.g. Blender's GLTF exporter
    * turns "DEF-spine.001" into "DEF-spine001", "DEF-upper_arm.L" into "DEF-upper_armL").
-   * Lowercase + strip dots/underscores/hyphens so all variants compare equal.
+   *
+   * Delegates to the shared tokenizer so there is one normalizer in this folder
+   * rather than three: it also strips the DEF-/ORG- prefix and drops leading zeros,
+   * so "DEF-thumb.01.L" and "DEF-thumb1L" both come out as "thumb1l".
    */
   private static loose_key (name: string): string {
-    return name.toLowerCase().replace(/[._\-]/g, '')
+    return normalized_lookup_key(name)
   }
 
   static map_rigify_bones (source_bones: BoneMetadata[], target_bones: BoneMetadata[]): Map<string, string> {

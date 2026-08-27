@@ -1,159 +1,90 @@
-import { BoneMetadata, BoneSide } from './BoneAutoMapper'
+import { type BoneMetadata, BoneSide } from './BoneTypes'
 
 /**
- * BoneCategoryMapper - Handles category-specific bone mapping logic
- * Contains the actual matching algorithms for each anatomical category
+ * BoneCategoryMapper - name-based matching, run either side of CanonicalSlotMapper.
+ *
+ * Two passes, deliberately separated:
+ *   - exact: the two rigs use literally the same bone name. Runs BEFORE the slot
+ *     pass, because nothing the vocabulary infers should override two rigs simply
+ *     agreeing - this is what keeps the animal skeletons, which already share
+ *     Mesh2Motion's naming, mapping exactly as they did before.
+ *   - loose: same name modulo case, separators and prefixes. Runs AFTER the slot
+ *     pass, to catch bones whose anatomy the vocabulary has no word for.
+ *
+ * This used to be seven near-identical per-category methods, each carrying a
+ * "TODO: add category-specific matching logic here". The logic those were waiting
+ * for now lives in BoneSlotVocabulary / BoneChainResolver instead.
  */
 export class BoneCategoryMapper {
   /**
-   * Map torso bones (spine, chest, neck, head, hips, pelvis)
+   * Match target bones to source bones with the exact same name.
+   * @returns a new map: the existing mappings plus whatever this pass added
    */
-  static map_torso_bones (source_bones: BoneMetadata[], target_bones: BoneMetadata[]): Map<string, string> {
-    // if target or source torso bones are empty, return empty mapping
-    if (source_bones === null || target_bones === null) {
-      console.error('map_torso_bones(): No source or target bones found. This should not be reached.')
-      return new Map<string, string>()
-    }
-
-    const category_mappings = new Map<string, string>()
-
-    console.log('DEVELOPING THE TORSO MAPPER')
-    console.log('Source Bones:', source_bones)
-    console.log('Target Bones:', target_bones)
-
-    // Perform exact name matching first
-    this.perform_exact_name_matching(source_bones, target_bones, category_mappings)
-
-    return category_mappings
+  static match_exact_names (
+    source_bones: BoneMetadata[],
+    target_bones: BoneMetadata[],
+    existing_mappings: Map<string, string>
+  ): Map<string, string> {
+    return BoneCategoryMapper.match(
+      source_bones, target_bones, existing_mappings,
+      (source, target) => source.name === target.name
+    )
   }
 
   /**
-   * Map arm bones (shoulder, upper arm, elbow, forearm, wrist)
+   * Match remaining target bones by normalized name, but only across compatible
+   * sides so a left bone is never handed a right bone's animation.
+   * @returns a new map: the existing mappings plus whatever this pass added
    */
-  static map_arm_bones (source_bones: BoneMetadata[], target_bones: BoneMetadata[]): Map<string, string> {
-    const category_mappings = new Map<string, string>()
-
-    // Perform exact name matching first
-    this.perform_exact_name_matching(source_bones, target_bones, category_mappings)
-
-    // TODO: Add category-specific matching logic here
-
-    return category_mappings
+  static match_loose_names (
+    source_bones: BoneMetadata[],
+    target_bones: BoneMetadata[],
+    existing_mappings: Map<string, string>
+  ): Map<string, string> {
+    return BoneCategoryMapper.match(
+      source_bones, target_bones, existing_mappings,
+      (source, target) =>
+        source.normalized_name === target.normalized_name &&
+        BoneCategoryMapper.sides_compatible(source.side, target.side)
+    )
   }
 
   /**
-   * Map hand bones (hands, fingers, thumbs)
+   * Shared body of both passes. Skips any target already mapped and any source
+   * already used, so passes compose in any order without double-assigning a bone.
    */
-  static map_hand_bones (source_bones: BoneMetadata[], target_bones: BoneMetadata[]): Map<string, string> {
-    const category_mappings = new Map<string, string>()
+  private static match (
+    source_bones: BoneMetadata[],
+    target_bones: BoneMetadata[],
+    existing_mappings: Map<string, string>,
+    is_match: (source: BoneMetadata, target: BoneMetadata) => boolean
+  ): Map<string, string> {
+    const mappings = new Map<string, string>(existing_mappings)
+    const used_source_names = new Set<string>(mappings.values())
 
-    // Perform exact name matching first
-    this.perform_exact_name_matching(source_bones, target_bones, category_mappings)
+    for (const target_bone of target_bones) {
+      if (mappings.has(target_bone.name)) continue
 
-    // TODO: Add category-specific matching logic here
-
-    return category_mappings
-  }
-
-  /**
-   * Map leg bones (hips, thighs, knees, calves, ankles, feet, toes)
-   */
-  static map_leg_bones (source_bones: BoneMetadata[], target_bones: BoneMetadata[]): Map<string, string> {
-    const category_mappings = new Map<string, string>()
-
-    // Perform exact name matching first
-    this.perform_exact_name_matching(source_bones, target_bones, category_mappings)
-
-    // TODO: Add category-specific matching logic here
-
-    return category_mappings
-  }
-
-  /**
-   * Map wing bones (wings, feathers, pinions)
-   */
-  static map_wing_bones (source_bones: BoneMetadata[], target_bones: BoneMetadata[]): Map<string, string> {
-    const category_mappings = new Map<string, string>()
-
-    // Perform exact name matching first
-    this.perform_exact_name_matching(source_bones, target_bones, category_mappings)
-
-    // TODO: Add category-specific matching logic here
-
-    return category_mappings
-  }
-
-  /**
-   * Map tail bones
-   */
-  static map_tail_bones (source_bones: BoneMetadata[], target_bones: BoneMetadata[]): Map<string, string> {
-    const category_mappings = new Map<string, string>()
-
-    // Perform exact name matching first
-    this.perform_exact_name_matching(source_bones, target_bones, category_mappings)
-
-    // TODO: Add category-specific matching logic here
-
-    return category_mappings
-  }
-
-  /**
-   * Map unknown/uncategorized bones
-   */
-  static map_unknown_bones (source_bones: BoneMetadata[], target_bones: BoneMetadata[]): Map<string, string> {
-    const category_mappings = new Map<string, string>()
-
-    // Perform exact name matching first
-    this.perform_exact_name_matching(source_bones, target_bones, category_mappings)
-
-    // TODO: Add category-specific matching logic here
-
-    return category_mappings
-  }
-
-  /**
-   * Match target bones to source bones by normalized name + compatible side.
-   * Each source bone may only be used once.
-   * @param source_bones - Array of source bone metadata
-   * @param target_bones - Array of target bone metadata
-   * @param category_mappings - Map to store the bone name mappings
-   */
-  private static perform_exact_name_matching (source_bones: BoneMetadata[],
-    target_bones: BoneMetadata[], category_mappings: Map<string, string>): void {
-
-    const used_source_names = new Set<string>(category_mappings.values())
-
-    for (const target_bone_meta of target_bones) {
-      if (category_mappings.has(target_bone_meta.name)) continue
-
-      // Prefer same-side, exact-normalized match first
-      let match: BoneMetadata | undefined = source_bones.find(sb =>
-        !used_source_names.has(sb.name) &&
-        sb.normalized_name === target_bone_meta.normalized_name &&
-        BoneCategoryMapper.sides_compatible(sb.side, target_bone_meta.side)
+      const match: BoneMetadata | undefined = source_bones.find(
+        source_bone => !used_source_names.has(source_bone.name) && is_match(source_bone, target_bone)
       )
 
-      // Fallback: raw-name match (preserves prior behavior for identical names)
-      if (match === undefined) {
-        match = source_bones.find(sb =>
-          !used_source_names.has(sb.name) &&
-          sb.name === target_bone_meta.name
-        )
-      }
-
       if (match !== undefined) {
-        category_mappings.set(target_bone_meta.name, match.name)
+        mappings.set(target_bone.name, match.name)
         used_source_names.add(match.name)
       }
     }
+
+    return mappings
   }
 
   private static sides_compatible (a: BoneSide, b: BoneSide): boolean {
     if (a === b) return true
+
+    // Unknown means the name carried no side marker, so it pairs with anything
     if (a === BoneSide.Unknown || b === BoneSide.Unknown) return true
-    if (a === BoneSide.Center || b === BoneSide.Center) {
-      return a === BoneSide.Center && b === BoneSide.Center
-    }
+
+    // a midline bone must not be paired with a left or right one
     return false
   }
 }
