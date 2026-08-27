@@ -6,6 +6,7 @@ import {
 } from 'three'
 
 import { AnimationUtility } from './AnimationUtility.ts'
+import { ArmExtensionControl } from './ArmExtensionControl.ts'
 import { AnimationLoader, type AnimationLoadProgress } from './AnimationLoader.ts'
 import { CustomAnimationImporter } from './CustomAnimationImporter.ts'
 import { type ModelVariationSwitcher } from './ModelVariationSwitcher.ts'
@@ -52,10 +53,8 @@ export class StepAnimationsListing extends EventTarget {
     this.animations_file_path = path
   }
 
-  /**
-   * The amount to raise the arms.
-   */
-  private warp_arm_amount: number = 0.0
+  // shared "Expand / Contract Arms" controls. owns the current arm extension amount
+  private readonly arm_extension_control: ArmExtensionControl = ArmExtensionControl.getInstance()
 
   private has_added_event_listeners: boolean = false
 
@@ -354,7 +353,7 @@ export class StepAnimationsListing extends EventTarget {
     }
 
     /// Apply the arm extension warp:
-    AnimationUtility.apply_arm_extension_warp(this.animation_clips_loaded, this.warp_arm_amount)
+    AnimationUtility.apply_arm_extension_warp(this.animation_clips_loaded, this.arm_extension_control.value())
   }
 
   /**
@@ -445,37 +444,13 @@ export class StepAnimationsListing extends EventTarget {
       })
     }
 
-    // reset A-Pose arm extension button
-    this.ui.dom_reset_arm_extension_button?.addEventListener('click', (event) => {
-      const extend_arm_value: number = 0 // reset to zero
-      if (this.ui.dom_extend_arm_numeric_input !== null) {
-        this.ui.dom_extend_arm_numeric_input.value = extend_arm_value.toString()
-      }
-      if (this.ui.dom_extend_arm_range_input !== null) {
-        this.ui.dom_extend_arm_range_input.value = extend_arm_value.toString()
-      }
-      this.update_a_pose_value(extend_arm_value)
-    })
-
-    // A-Pose arm extension event listener
-    this.ui.dom_extend_arm_numeric_input?.addEventListener('input', (event) => {
-      const extend_arm_value: number = Utility.parse_input_number(this.ui.dom_extend_arm_numeric_input?.value)
-      if (this.ui.dom_extend_arm_range_input !== null) {
-        this.ui.dom_extend_arm_range_input.value = extend_arm_value.toString()
-      }
-      this.update_a_pose_value(extend_arm_value)
-    })
-
-    this.ui.dom_extend_arm_range_input?.addEventListener('input', (event) => {
-      const extend_arm_value: number = Utility.parse_input_number(this.ui.dom_extend_arm_range_input?.value)
-      if (this.ui.dom_extend_arm_numeric_input !== null) {
-        this.ui.dom_extend_arm_numeric_input.value = extend_arm_value.toString()
-      }
-      this.update_a_pose_value(extend_arm_value)
+    // shared A-Pose arm extension controls (reset button, numeric input, range input)
+    this.arm_extension_control.initialize(() => {
+      this.update_a_pose_value()
     })
 
     // check for changes to mirror animations checkbox
-    this.ui.dom_mirror_animations_checkbox?.addEventListener('change', (event) => {
+    this.ui.dom_mirror_animations_checkbox?.addEventListener('change', () => {
       const is_checked: boolean = this.ui.dom_mirror_animations_checkbox?.checked ?? false
       this.mirror_animations_enabled = is_checked
       // Rebuild animations with or without mirroring
@@ -504,9 +479,8 @@ export class StepAnimationsListing extends EventTarget {
     this.has_added_event_listeners = true
   }
 
-  // three different things might update this value: numeric input, range input, or reset button
-  private update_a_pose_value (new_value: number): void {
-    this.warp_arm_amount = new_value
+  // called by ArmExtensionControl whenever the arm extension amount changes
+  private update_a_pose_value (): void {
     this.rebuild_warped_animations()
     this.play_animation(this.current_playing_index)
   }

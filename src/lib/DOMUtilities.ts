@@ -148,6 +148,39 @@ export class DOMUtilities {
   }
 
   /**
+   * Render the shared "Expand / Contract Arms" controls into the provided mount element.
+   * Shared by the create workflow and the retarget workflow, so icon paths are
+   * root-absolute to work from both /create.html and /retarget/index.html.
+   */
+  static populate_arm_extension_controls (mount: HTMLElement): void {
+    mount.innerHTML = `
+      <div id="arm-extension-options">
+        <div style="display: flex; flex-direction: row; align-items: center; gap: 1rem; justify-content: center;">
+          <label style="display: inline-flex">Expand / Contract Arms</label>
+
+          <img src="/images/icons/help.svg" alt="Help" width="20" height="20"
+            data-tippy-content="Fine-tune arm spread across all animations for heavier or skinnier characters." />
+
+          <button class="secondary-button" id="reset-arm-extension-button"
+            aria-label="Reset arm extension" data-tippy-content="Reset">
+            <img src="/images/icons/reset.svg" alt="Reset Arm Extension" width="20" height="20" />
+          </button>
+        </div>
+
+        <div style="display: flex; flex-direction: row; gap: 1rem; justify-content: flex-start; align-items: center;">
+          <input type="number" id="extend-arm-numeric-input" name="arm-extend-input"
+            value="0" min="-70" max="100" step="1" />
+          <span class="suffix-unit">%</span>
+          <input id="extend-arm-range-input" style="flex-grow: 1" type="range"
+            min="-70" max="100" value="0" />
+        </div>
+
+        <hr />
+      </div>
+    `
+  }
+
+  /**
    * Render the shared export/download button, settings split toggle, and hidden link.
    * Page-specific button IDs and icon paths are resolved from the current route.
    */

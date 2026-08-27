@@ -1,12 +1,15 @@
 import { AnimationPlayer } from '../lib/processes/animations-listing/AnimationPlayer.ts'
 import { AnimationSearch } from '../lib/processes/animations-listing/AnimationSearch.ts'
 import { AnimationLoader } from '../lib/processes/animations-listing/AnimationLoader.ts'
+import { AnimationUtility } from '../lib/processes/animations-listing/AnimationUtility.ts'
+import { ArmExtensionControl } from '../lib/processes/animations-listing/ArmExtensionControl.ts'
 import { type AnimationClip, AnimationMixer, type SkinnedMesh, Object3D, type AnimationAction } from 'three'
 import type { ThemeManager } from '../lib/ThemeManager.ts'
 import { type TransformedAnimationClipPair } from '../lib/processes/animations-listing/interfaces/TransformedAnimationClipPair.ts'
 import { AnimationRetargetService } from './AnimationRetargetService.ts'
 import { StepExportRetargetedAnimations } from './steps/StepExportRetargetedAnimations.ts'
 import { UI } from '../lib/UI.ts'
+import { SkeletonType } from '../lib/enums/SkeletonType.ts'
 import { DownloadSettings } from '../lib/processes/export-to-file/DownloadSettings.ts'
 import { ModalDialog } from '../lib/ModalDialog.ts'
 
@@ -23,6 +26,13 @@ export class RetargetAnimationListing extends EventTarget {
   private animation_clips_loaded: TransformedAnimationClipPair[] = []
   private animation_mixer: AnimationMixer = new AnimationMixer(new Object3D())
   private readonly ui: UI = UI.getInstance()
+
+  // shared "Expand / Contract Arms" controls. owns the current arm extension amount
+  private readonly arm_extension_control: ArmExtensionControl = ArmExtensionControl.getInstance()
+
+  // -1 means nothing has been played yet, so there is nothing to re-play when the
+  // arm extension changes. unlike the create workflow, this step does not auto-play
+  private current_playing_index: number = -1
 
   private _added_event_listeners: boolean = false
 
@@ -47,6 +57,16 @@ export class RetargetAnimationListing extends EventTarget {
       this._added_event_listeners = true
     }
 
+    // the arm extension markup is static, so it survives leaving and re-entering this
+    // step. re-point it at this instance and clear whatever the last visit left behind
+    this.arm_extension_control.initialize(() => {
+      this.update_arm_extension_value()
+    })
+    this.arm_extension_control.reset()
+    this.arm_extension_control.set_visible(
+      AnimationRetargetService.getInstance().get_skeleton_type() === SkeletonType.Human
+    )
+
     this.show_bone_toggle_button(true)
   }
 
@@ -64,6 +84,7 @@ export class RetargetAnimationListing extends EventTarget {
   public reset_step_data (): void {
     this.animation_clips_loaded = []
     this.animation_mixer = new AnimationMixer(new Object3D())
+    this.current_playing_index = -1
     this.animation_player.clear_animation()
   }
 
@@ -134,6 +155,9 @@ export class RetargetAnimationListing extends EventTarget {
   }
 
   private on_all_animations_loaded (): void {
+    // the arm slider can be moved while the animation files are still downloading
+    this.rebuild_warped_animations()
+
     // Sort alphabetically
     this.animation_clips_loaded.sort((a: TransformedAnimationClipPair, b: TransformedAnimationClipPair) => {
       if (a.display_animation_clip.name < b.display_animation_clip.name) return -1
@@ -190,17 +214,47 @@ export class RetargetAnimationListing extends EventTarget {
     }
   }
 
+  /**
+   * Rebuilds all of the warped animations by applying the specified warps.
+   * The warp is applied to the source-space display clip, so both the preview
+   * and the export (which each retarget the display clip) pick it up.
+   */
+  private rebuild_warped_animations (): void {
+    // Reset all of the warped clips to the corresponding original clip.
+    this.animation_clips_loaded.forEach((warped_clip: TransformedAnimationClipPair) => {
+      warped_clip.display_animation_clip = AnimationUtility.deep_clone_animation_clip(warped_clip.original_animation_clip)
+    })
+
+    /// Apply the arm extension warp:
+    AnimationUtility.apply_arm_extension_warp(this.animation_clips_loaded, this.arm_extension_control.value())
+  }
+
+  // called by ArmExtensionControl whenever the arm extension amount changes
+  private update_arm_extension_value (): void {
+    this.rebuild_warped_animations()
+
+    // nothing auto-plays in this step, so only re-play if the user picked an animation
+    if (this.current_playing_index >= 0) {
+      this.play_animation(this.current_playing_index)
+    }
+  }
+
   private play_animation (index: number): void {
     if (index < 0 || index >= this.animation_clips_loaded.length) {
       console.warn('Invalid animation index:', index)
       return
     }
 
+    this.current_playing_index = index
+
     const animation_pair = this.animation_clips_loaded[index]
     const display_clip = animation_pair.display_animation_clip
 
-    // Stop all current actions
+    // the mixer keeps an internal cache of every clip it has been handed. dragging the
+    // arm extension slider fires an input event per pixel, and each one produces a new
+    // retargeted clip, so replace the mixer instead of letting dead clips pile up
     this.animation_mixer.stopAllAction()
+    this.animation_mixer = new AnimationMixer(new Object3D())
 
     // Retarget the animation using the shared service
     const retargeted_clip: AnimationClip = AnimationRetargetService.getInstance().retarget_animation_clip(

@@ -16,6 +16,7 @@ import { StepLoadSkeleton } from './lib/processes/load-skeleton/StepLoadSkeleton
 import { StepEditSkeleton } from './lib/processes/edit-skeleton/StepEditSkeleton.ts'
 import { MeshDragBonePlacement } from './lib/processes/edit-skeleton/MeshDragBonePlacement.ts'
 import { StepAnimationsListing } from './lib/processes/animations-listing/StepAnimationsListing.ts'
+import { ArmExtensionControl } from './lib/processes/animations-listing/ArmExtensionControl.ts'
 import { DownloadSettings } from './lib/processes/export-to-file/DownloadSettings.ts'
 import { StepExportToFile } from './lib/processes/export-to-file/StepExportToFile.ts'
 import { StepWeightSkin } from './lib/processes/weight-skin/StepWeightSkin.ts'
@@ -243,13 +244,9 @@ export class Mesh2MotionEngine {
   }
 
   public update_a_pose_options_visibility (): void {
-    if (this.ui.dom_arm_extension_options != null) {
-      if (this.load_skeleton_step.skeleton_type() === SkeletonType.Human) {
-        this.ui.dom_arm_extension_options.style.display = 'block'
-      } else {
-        this.ui.dom_arm_extension_options.style.display = 'none'
-      }
-    }
+    ArmExtensionControl.getInstance().set_visible(
+      this.load_skeleton_step.skeleton_type() === SkeletonType.Human
+    )
   }
 
   public handle_transform_controls_moving (): void {
@@ -709,6 +706,11 @@ export class Mesh2MotionEngine {
     const animation_player_mount = document.querySelector('#animation-player-mount')
     if (animation_player_mount instanceof HTMLElement) {
       DOMUtilities.populate_animation_player(animation_player_mount)
+    }
+
+    const arm_extension_mount = document.querySelector('#arm-extension-mount')
+    if (arm_extension_mount instanceof HTMLElement) {
+      DOMUtilities.populate_arm_extension_controls(arm_extension_mount)
     }
 
     const download_control_mount = document.querySelector('#download-control-mount')

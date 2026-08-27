@@ -118,6 +118,11 @@ h1 {
     max-height: calc(100vh - 17rem);
 }
 
+#animations-listing.has-arm-extension #animations-items {
+    /* reserve room for the arm extension controls so the download row stays on screen */
+    max-height: calc(100vh - 25rem);
+}
+
 #auto-bone-map-match {
     font-size: 0.9rem;
     border: 3px solid var(--bg-tertiary);
