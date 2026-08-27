@@ -147,7 +147,7 @@ export class AnimationRetargetService {
     // we ignore Mesh2Motion type since that is identical to the source and does not need retargeting
     if (this.skeleton_type === SkeletonType.Human && this.target_mapping_type !== TargetBoneMappingType.Mesh2Motion) {
       console.log('Using Human Retargeter for retargeting animation clip:', source_clip.name, this.target_mapping_type)
-      return this.apply_human_swing_twist_retargeting(source_clip, this.target_mapping_type)
+      return this.apply_human_swing_twist_retargeting(source_clip)
     }
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -206,7 +206,7 @@ export class AnimationRetargetService {
 
   // #region PRIVATE METHODS
 
-  private apply_human_swing_twist_retargeting (source_clip: AnimationClip, target_mapping_type: TargetBoneMappingType): AnimationClip {
+  private apply_human_swing_twist_retargeting (source_clip: AnimationClip): AnimationClip {
     // the retargeter needs Skeleton inputs for both source and target.
     // the source armature is a Group, so we need to convert to a THREE.Skeleton before we can continue
     const source_skeleton: Skeleton | null = RetargetUtils.create_skeleton_from_group_object(this.source_armature)
@@ -236,20 +236,17 @@ export class AnimationRetargetService {
     const source_rig: Rig = new Rig(source_skeleton)
     const target_rig: Rig = new Rig(detached_target_skeleton)
 
-    // if it is a known bone mapping, we can grab the preset config
-    // if not, we will need to manually build the config from the bone mappings
-    if (target_mapping_type === TargetBoneMappingType.Mixamo) {
-      source_rig.fromConfig(HumanChainConfig.mesh2motion_config)
-      target_rig.fromConfig(HumanChainConfig.mixamo_config)
-    } else if (target_mapping_type === TargetBoneMappingType.Custom ||
-               target_mapping_type === TargetBoneMappingType.Rigify) {
-      const custom_source_config = HumanChainConfig.build_custom_source_config(this.get_bone_mappings())
-      const custom_target_config = HumanChainConfig.build_custom_target_config(custom_source_config, this.get_bone_mappings())
+    // Build the chain configs from the bone mapping we actually have, whatever rig
+    // type was detected. There used to be a shortcut here that fed the Mixamo rig a
+    // hardcoded config, but that config spells every bone with a "mixamorig" prefix,
+    // so a Mixamo rig exported without the prefix resolved to no joints at all and
+    // came out as an empty rig. The bone mapping already encodes the same chains
+    // using the target's real bone names, so there is nothing to shortcut.
+    const custom_source_config = HumanChainConfig.build_custom_source_config(this.get_bone_mappings())
+    const custom_target_config = HumanChainConfig.build_custom_target_config(custom_source_config, this.get_bone_mappings())
 
-      // set the custom rigs from the generated configs
-      source_rig.fromConfig(custom_source_config)
-      target_rig.fromConfig(custom_target_config)
-    }
+    source_rig.fromConfig(custom_source_config)
+    target_rig.fromConfig(custom_target_config)
 
     // instrumentation. Runs before the retargeter drives anything, so the rigs are still
     // holding the rest pose they captured. See RetargetDiagnostics for why each check exists

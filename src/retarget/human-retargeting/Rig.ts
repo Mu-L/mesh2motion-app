@@ -127,6 +127,15 @@ export class Rig {
   // it helps with calculations with hips where characters might have different heights
   private buildRigScalar (chain_key: string): this {
     const ch: RigItem[] = this.chains[chain_key]
+
+    // the chain can come back empty when none of its configured joint names exist in
+    // this skeleton. Keep the default scalar rather than throwing - the retarget will
+    // be poor, but a badly mapped rig should not take the whole preview down
+    if (ch === undefined || ch.length === 0) {
+      console.warn(`Rig.buildRigScalar: chain "${chain_key}" resolved to no joints, keeping default scalar.`)
+      return this
+    }
+
     const j: Joint = this.tpose.joints[ch[0].idx]
     this.scalar = j.world.pos[1]
     return this

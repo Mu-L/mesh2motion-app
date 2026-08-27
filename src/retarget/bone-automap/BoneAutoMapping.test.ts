@@ -4,6 +4,7 @@ import { BoneChainResolver, type RawBoneRecord } from './BoneChainResolver'
 import { MixamoMapper } from './MixamoMapper'
 import { RigifyMapper } from './RigifyMapper'
 import { type BoneMetadata, BoneSlot } from './BoneTypes'
+import { HumanChainConfig } from '../human-retargeting/HumanChainConfig'
 import {
   bone_names, daz_rig, mesh2motion_rig, mixamo_rig, unreal_rig, vrm_rig
 } from './rig-fixtures'
@@ -269,6 +270,33 @@ describe('template rig detection', () => {
 
     expect(mappings.get('mixamorigLeftForeArm')).toBe('lowerarm_l')
     expect(mappings.size).toBe(mixamo_rig().length)
+  })
+
+  it('builds retarget chains from the rig\'s real bone names, not the template\'s', () => {
+    // Regression: the retargeter used to feed a detected Mixamo rig a hardcoded
+    // chain config spelling every bone "mixamorigX". A rig exported without the
+    // prefix resolved to no joints at all, and the empty pelvis chain crashed
+    // Rig.buildRigScalar. The chains must come from the actual bone mapping.
+    const source = BoneChainResolver.build_metadata(mesh2motion_rig())
+    const target = BoneChainResolver.build_metadata(mixamo_rig(''))
+    const mappings = MixamoMapper.map_mixamo_bones(source, target)
+
+    const source_config = HumanChainConfig.build_custom_source_config(mappings)
+    const target_config = HumanChainConfig.build_custom_target_config(source_config, mappings)
+
+    expect(target_config.pelvis).toEqual(['Hips'])
+    expect(target_config.armL).toEqual(['LeftArm', 'LeftForeArm', 'LeftHand'])
+    expect(target_config.legR).toEqual(['RightUpLeg', 'RightLeg', 'RightFoot'])
+    expect(target_config.spine).toEqual(['Spine', 'Spine1', 'Spine2'])
+
+    // every configured bone must actually exist in the target skeleton
+    const target_names = new Set<string>(bone_names(mixamo_rig('')))
+    for (const chain of Object.values(target_config)) {
+      for (const name of chain) {
+        if (name === '') continue
+        expect(target_names.has(name)).toBe(true)
+      }
+    }
   })
 
   it('matches Rigify bones across exporter separator variations', () => {
