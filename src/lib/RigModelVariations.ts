@@ -3,6 +3,7 @@ interface VariationSpec {
   displayName: string
   attribution?: string
   license?: string
+  expandArms?: number
 }
 
 export interface ModelVariation {
@@ -11,7 +12,7 @@ export interface ModelVariation {
   attribution: string // Free-form attribution text to be shown in the UI when this model variation is selected, e.g. 'Model by Artist Name'
   preview_image: string // Preview image path relative to the static root, shown in the variation selection dialog
   license: string // License string for this model variation, e.g. 'CC0', 'CC-SA 4.0'
-
+  expandArms: number // Explore page arm expansion value, default 0 for human rigs
 }
 
 function createVariation(type: string, spec: VariationSpec): ModelVariation {
@@ -20,7 +21,8 @@ function createVariation(type: string, spec: VariationSpec): ModelVariation {
     display_name: spec.displayName,
     attribution: spec.attribution ?? '', // attribution only needed for CC-SA and CC-BY
     license: spec.license ?? 'CC0', // defaults to CC0 unless otherwise specified
-    preview_image: `models-variation/profiles/${spec.variant}.png` // all preview images are stored in the profiles folder
+    preview_image: `models-variation/profiles/${spec.variant}.png`, // all preview images are stored in the profiles folder
+    expandArms: spec.expandArms ?? 0 // default to 0 unless a human variation overrides it for the Explore page
   }
 }
 
@@ -32,7 +34,7 @@ export const humanVariations: ModelVariation[] = [
   createVariation(HUMAN_TYPE, { variant: 'sophia', displayName: 'Sophia', attribution: 'Tysan Tan', license: 'CC-SA 4.0' }),
   createVariation(HUMAN_TYPE, { variant: 'jay', displayName: 'Jay', attribution: 'Blender Studio', license: 'CC-BY' }),
   createVariation(HUMAN_TYPE, { variant: 'sintel', displayName: 'Sintel', attribution: 'Blender Studio', license: 'CC-BY' }),
-  createVariation(HUMAN_TYPE, { variant: 'bunny', displayName: 'Bunny', attribution: 'Blender Studio', license: 'CC-BY' }),
+  createVariation(HUMAN_TYPE, { variant: 'bunny', displayName: 'Bunny', attribution: 'Blender Studio', license: 'CC-BY', expandArms: -30 }),
 ]
 
 const FOX_TYPE = 'fox'

@@ -229,7 +229,7 @@ export class ModelVariationSwitcher extends EventTarget {
     })
   }
 
-  private load_variation_model (model_file: string): void {
+  private load_variation_model (model_file: string, expand_arms: number = 0): void {
     this.show_loading_progress()
 
     this.loader.load(
@@ -250,7 +250,7 @@ export class ModelVariationSwitcher extends EventTarget {
         this.normalize_skinned_meshes(skinned_meshes)
 
         this.dispatchEvent(new CustomEvent('variation-changed', {
-          detail: { model_file, skinned_meshes }
+          detail: { model_file, skinned_meshes, expandArms: expand_arms }
         }))
       },
       (progress: ProgressEvent<EventTarget>) => {
@@ -306,7 +306,7 @@ export class ModelVariationSwitcher extends EventTarget {
       this.confirmed_variation = this.pending_variation
       if (this.dom_dialog_confirm_button !== null) this.dom_dialog_confirm_button.disabled = true
       this.update_active_model_info()
-      this.load_variation_model(this.confirmed_variation.model_file)
+      this.load_variation_model(this.confirmed_variation.model_file, this.confirmed_variation.expandArms)
     })
 
     // clicking on the overlay screen bg should also close/cancel the dialog

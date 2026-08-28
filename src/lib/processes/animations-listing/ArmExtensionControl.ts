@@ -54,6 +54,16 @@ export class ArmExtensionControl {
   }
 
   /**
+   * Set the arm extension value programmatically, including updating the UI and notifying listeners.
+   * This is used when model variations on the Explore page specify a custom arm spread.
+   */
+  public set_value (new_value: number): void {
+    this.arm_extension_amount = new_value
+    this.update_input_elements(new_value)
+    this.on_change?.(new_value)
+  }
+
+  /**
    * Return the value and both inputs to zero without notifying the current listener.
    * Needed because the markup is static and survives leaving/re-entering a step.
    */

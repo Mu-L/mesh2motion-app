@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { Bone } from 'three'
+import { ArmExtensionControl } from './processes/animations-listing/ArmExtensionControl'
 import { Utility } from './Utilities'
 
 /**
@@ -36,5 +37,21 @@ describe('Utility.is_leaf_bone', () => {
   it('keeps a normal animatable bone', () => {
     expect(Utility.is_leaf_bone(make_bone('upperarm_l', true))).toBe(false)
     expect(Utility.is_leaf_bone(make_bone('upperarm_l'))).toBe(false)
+  })
+})
+
+describe('ArmExtensionControl.set_value', () => {
+  it('stores the variation arm extension and notifies listeners', () => {
+    const control = ArmExtensionControl.getInstance()
+    let value = -1
+
+    ;(control as any).on_change = (next_value: number) => {
+      value = next_value
+    }
+
+    control.set_value(24)
+
+    expect(control.value()).toBe(24)
+    expect(value).toBe(24)
   })
 })

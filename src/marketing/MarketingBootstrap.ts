@@ -69,13 +69,16 @@ export class MarketingBootstrap {
     // when the user picks a different model variation, swap the skinned mesh in the scene
     this.model_variation_switcher.addEventListener('variation-changed', ((event: CustomEvent) => {
       const skinned_meshes = event.detail.skinned_meshes as SkinnedMesh[]
+      const expand_arms = Number(event.detail.expandArms ?? 0)
+
       this.mesh2motion_engine.animations_listing_step.swap_skinned_meshes(
         this.mesh2motion_engine.scene, skinned_meshes
       )
+      this.mesh2motion_engine.animations_listing_step.apply_model_variation_arm_extension(expand_arms)
 
       this.rebuild_skeleton_helper(skinned_meshes)
       this.apply_wireframe_to_skinned_meshes(skinned_meshes)
- 
+
     }) as EventListener)
 
     // event after the DOM is fully loaded for HTML elements

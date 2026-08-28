@@ -193,6 +193,21 @@ export class StepAnimationsListing extends EventTarget {
   }
 
   /**
+   * Applies the current arm-extension deformation for the active model variation
+   * and immediately replays the current animation when the Explore page swaps models.
+   */
+  public apply_model_variation_arm_extension (value: number): void {
+    this.arm_extension_control.set_value(value)
+
+    if (this.animation_clips_loaded.length === 0) {
+      return
+    }
+
+    this.rebuild_warped_animations()
+    this.play_animation(this.current_playing_index)
+  }
+
+  /**
    * Removes the current skinned meshes from the scene, adds the new ones,
    * and replays the current animation on them.
    */
