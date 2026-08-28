@@ -169,10 +169,10 @@ export class DOMUtilities {
 
         <div style="display: flex; flex-direction: row; gap: 1rem; justify-content: flex-start; align-items: center;">
           <input type="number" id="extend-arm-numeric-input" name="arm-extend-input"
-            value="0" min="-70" max="100" step="1" />
+            value="0" step="1" />
           <span class="suffix-unit">%</span>
           <input id="extend-arm-range-input" style="flex-grow: 1" type="range"
-            min="-70" max="100" value="0" />
+            min="-120" max="20" value="0" />
         </div>
 
         <hr />
