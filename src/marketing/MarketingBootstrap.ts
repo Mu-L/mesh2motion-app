@@ -70,10 +70,12 @@ export class MarketingBootstrap {
     this.model_variation_switcher.addEventListener('variation-changed', ((event: CustomEvent) => {
       const skinned_meshes = event.detail.skinned_meshes as SkinnedMesh[]
       const expand_arms = Number(event.detail.expandArms ?? 0)
+      const pelvis_position_scale = Number(event.detail.pelvis_position_scale ?? 1.0)
 
       this.mesh2motion_engine.animations_listing_step.swap_skinned_meshes(
         this.mesh2motion_engine.scene, skinned_meshes
       )
+      this.mesh2motion_engine.animations_listing_step.apply_model_variation_pelvis_position_scale(pelvis_position_scale)
       this.mesh2motion_engine.animations_listing_step.apply_model_variation_arm_extension(expand_arms)
 
       this.rebuild_skeleton_helper(skinned_meshes)

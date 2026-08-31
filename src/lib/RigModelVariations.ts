@@ -4,6 +4,7 @@ interface VariationSpec {
   attribution?: string
   license?: string
   expandArms?: number
+  pelvisPositionScale?: number
 }
 
 export interface ModelVariation {
@@ -13,6 +14,9 @@ export interface ModelVariation {
   preview_image: string // Preview image path relative to the static root, shown in the variation selection dialog
   license: string // License string for this model variation, e.g. 'CC0', 'CC-SA 4.0'
   expandArms: number // Explore page arm expansion value, default 0 for human rigs
+  // Multiplier applied to the position keyframes of the rig's position tracking bone (e.g. pelvis/hips).
+  // Taller variations need a value above 1.0 so their feet stay on the ground instead of sinking below it.
+  pelvis_position_scale: number
 }
 
 function createVariation(type: string, spec: VariationSpec): ModelVariation {
@@ -22,7 +26,8 @@ function createVariation(type: string, spec: VariationSpec): ModelVariation {
     attribution: spec.attribution ?? '', // attribution only needed for CC-SA and CC-BY
     license: spec.license ?? 'CC0', // defaults to CC0 unless otherwise specified
     preview_image: `models-variation/${type}/preview/${spec.variant}.png`, // all preview images are stored in the profiles folder
-    expandArms: spec.expandArms ?? 0 // default to 0 unless a human variation overrides it for the Explore page
+    expandArms: spec.expandArms ?? 0, // default to 0 unless a human variation overrides it for the Explore page
+    pelvis_position_scale: spec.pelvisPositionScale ?? 1.0 // 1.0 keeps the authored hip height from the animation data
   }
 }
 
@@ -32,31 +37,31 @@ export const humanVariations: ModelVariation[] = [
   createVariation(HUMAN_TYPE, { variant: 'zombie', displayName: 'Zombie', attribution: 'Kenney.nl', license: 'CC0' }),
   createVariation(HUMAN_TYPE, { variant: 'female', displayName: 'Female', license: 'CC0' }),
   createVariation(HUMAN_TYPE, { variant: 'female_8', displayName: 'Female 8', license: 'CC0' }),
-  createVariation(HUMAN_TYPE, { variant: 'female_9', displayName: 'Female 9', license: 'CC0' }),
-  createVariation(HUMAN_TYPE, { variant: 'female_31', displayName: 'Female 31', license: 'CC0' }),
+  createVariation(HUMAN_TYPE, { variant: 'female_9', displayName: 'Female 9', license: 'CC0',pelvisPositionScale: 1.02 }),
+  createVariation(HUMAN_TYPE, { variant: 'female_31', displayName: 'Female 31', license: 'CC0', pelvisPositionScale: 0.92 }),
   createVariation(HUMAN_TYPE, { variant: 'male_5', displayName: 'Male 5', license: 'CC0' }),
   createVariation(HUMAN_TYPE, { variant: 'male_6', displayName: 'Male 6', license: 'CC0' }),
   createVariation(HUMAN_TYPE, { variant: 'male_10', displayName: 'Male 10', license: 'CC0' }),
   createVariation(HUMAN_TYPE, { variant: 'male_15', displayName: 'Male 15', license: 'CC0' }),
-  createVariation(HUMAN_TYPE, { variant: 'male_32', displayName: 'Male 32', license: 'CC0' }),
+  createVariation(HUMAN_TYPE, { variant: 'male_32', displayName: 'Male 32', license: 'CC0', pelvisPositionScale: 0.96 }),
   createVariation(HUMAN_TYPE, { variant: 'doctor_m', displayName: 'Doctor Male', license: 'CC0' }),
-  createVariation(HUMAN_TYPE, { variant: 'hazmat_female', displayName: 'Hazmat Female', license: 'CC0' }),
-  createVariation(HUMAN_TYPE, { variant: 'hazmat_suit_male', displayName: 'Hazmat Suit Male', license: 'CC0' }),
-  createVariation(HUMAN_TYPE, { variant: 'killer_4', displayName: 'Killer 4', license: 'CC0' }),
-  createVariation(HUMAN_TYPE, { variant: 'killer_5', displayName: 'Killer 5', license: 'CC0' }),
-  createVariation(HUMAN_TYPE, { variant: 'monster', displayName: 'Monster', license: 'CC0' }),
-  createVariation(HUMAN_TYPE, { variant: 'monster_3', displayName: 'Monster 3', license: 'CC0' }),
-  createVariation(HUMAN_TYPE, { variant: 'monster_4', displayName: 'Monster 4', license: 'CC0' }),
-  createVariation(HUMAN_TYPE, { variant: 'monster_5', displayName: 'Monster 5', license: 'CC0' }),
-  createVariation(HUMAN_TYPE, { variant: 'police_female', displayName: 'Police Female', license: 'CC0' }),
-  createVariation(HUMAN_TYPE, { variant: 'police_male', displayName: 'Police Male', license: 'CC0' }),
   createVariation(HUMAN_TYPE, { variant: 'swat_male', displayName: 'SWAT Male', license: 'CC0' }),
+  createVariation(HUMAN_TYPE, { variant: 'police_male', displayName: 'Police Male', license: 'CC0' }),
+  createVariation(HUMAN_TYPE, { variant: 'police_female', displayName: 'Police Female', license: 'CC0' }),
+  createVariation(HUMAN_TYPE, { variant: 'hazmat_female', displayName: 'Hazmat Female', license: 'CC0' }),
+  createVariation(HUMAN_TYPE, { variant: 'hazmat_suit_male', displayName: 'Hazmat Suit Male', license: 'CC0', pelvisPositionScale: 1.05 }),
+  createVariation(HUMAN_TYPE, { variant: 'killer_4', displayName: 'Killer 4', license: 'CC0', pelvisPositionScale: 1.02  }),
+  createVariation(HUMAN_TYPE, { variant: 'killer_5', displayName: 'Killer 5', license: 'CC0', pelvisPositionScale: 1.05 }),
+  createVariation(HUMAN_TYPE, { variant: 'killer_6', displayName: 'Killer 6', attribution: '', license: 'CC-BY', pelvisPositionScale: 1.05 }),
+  createVariation(HUMAN_TYPE, { variant: 'killer_7', displayName: 'Killer 7', attribution: '', license: 'CC-BY'}),
+  createVariation(HUMAN_TYPE, { variant: 'monster', displayName: 'Monster', license: 'CC0', pelvisPositionScale: 1.37 }),
+  createVariation(HUMAN_TYPE, { variant: 'monster_3', displayName: 'Monster 3', license: 'CC0', pelvisPositionScale: 1.05 }),
+  createVariation(HUMAN_TYPE, { variant: 'monster_4', displayName: 'Monster 4', license: 'CC0', pelvisPositionScale: 1.55 }),
+  createVariation(HUMAN_TYPE, { variant: 'monster_5', displayName: 'Monster 5', license: 'CC0', pelvisPositionScale: 1.12 }),
   createVariation(HUMAN_TYPE, { variant: 'sophia', displayName: 'Sophia', attribution: 'Tysan Tan', license: 'CC-SA 4.0' }),
   createVariation(HUMAN_TYPE, { variant: 'jay', displayName: 'Jay', attribution: 'Blender Studio', license: 'CC-BY' }),
   createVariation(HUMAN_TYPE, { variant: 'sintel', displayName: 'Sintel', attribution: 'Blender Studio', license: 'CC-BY' }),
   createVariation(HUMAN_TYPE, { variant: 'bunny', displayName: 'Bunny', attribution: 'Blender Studio', license: 'CC-BY', expandArms: -30 }),
-  createVariation(HUMAN_TYPE, { variant: 'killer_6', displayName: 'Killer 6', attribution: '', license: 'CC-BY'}),
-  createVariation(HUMAN_TYPE, { variant: 'killer_7', displayName: 'Killer 7', attribution: '', license: 'CC-BY'}),
 ]
 
 const FOX_TYPE = 'fox'

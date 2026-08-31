@@ -21,6 +21,31 @@ export class AnimationUtility {
     })
   }
 
+  // Scales the position keyframes of the rig's position tracking bone (e.g. pelvis/hips).
+  // The authored keyframes assume the height of the base rig model, so taller model
+  // variations need their hips raised to keep the feet from sinking below the ground.
+  static apply_position_tracking_bone_scale (animation_clips: TransformedAnimationClipPair[],
+    position_tracking_bone_name: string | undefined, scale_amount: number): void {
+    if (position_tracking_bone_name === undefined || scale_amount === 1.0) {
+      return
+    }
+
+    const track_name_to_match: string = `${position_tracking_bone_name.toLowerCase()}.position`
+
+    animation_clips.forEach((clip_pair: TransformedAnimationClipPair) => {
+      clip_pair.display_animation_clip.tracks.forEach((track: KeyframeTrack) => {
+        if (!track.name.toLowerCase().includes(track_name_to_match)) {
+          return
+        }
+
+        const values = track.values
+        for (let i = 0; i < values.length; i++) {
+          values[i] *= scale_amount
+        }
+      })
+    })
+  }
+
   static deep_clone_animation_clip (clip: AnimationClip): AnimationClip {
     const tracks = clip.tracks.map((track: KeyframeTrack) => track.clone())
     return new AnimationClip(clip.name, clip.duration, tracks)

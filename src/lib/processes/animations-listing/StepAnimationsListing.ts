@@ -12,6 +12,7 @@ import { CustomAnimationImporter } from './CustomAnimationImporter.ts'
 import { type ModelVariationSwitcher } from './ModelVariationSwitcher.ts'
 
 import { SkeletonType } from '../../enums/SkeletonType.ts'
+import { RigConfig } from '../../RigConfig.ts'
 import { Utility } from '../../Utilities.ts'
 import { type ThemeManager } from '../../ThemeManager.ts'
 import { AnimationSearch } from './AnimationSearch.ts'
@@ -37,6 +38,9 @@ export class StepAnimationsListing extends EventTarget {
   // retrieved from load skeleton step
   // we will use this to scale all position animation keyframes (uniform scale)
   private skeleton_scale: number = 1.0
+
+  // per model variation multiplier for the position tracking bone (pelvis/hips) keyframes
+  private model_variation_pelvis_position_scale: number = 1.0
 
   private readonly custom_animation_importer: CustomAnimationImporter
 
@@ -126,6 +130,7 @@ export class StepAnimationsListing extends EventTarget {
     this.animation_mixer = new AnimationMixer(new Object3D())
     this.current_playing_index = 0
     this.animation_search = null
+    this.model_variation_pelvis_position_scale = 1.0
     this.reset_ui_elements()
     this.animation_player.clear_animation()
   }
@@ -198,6 +203,21 @@ export class StepAnimationsListing extends EventTarget {
    */
   public apply_model_variation_arm_extension (value: number): void {
     this.arm_extension_control.set_value(value)
+
+    if (this.animation_clips_loaded.length === 0) {
+      return
+    }
+
+    this.rebuild_warped_animations()
+    this.play_animation(this.current_playing_index)
+  }
+
+  /**
+   * Applies the pelvis/hips position scale for the active model variation.
+   * Taller variations need their hips raised so their feet stay on the ground.
+   */
+  public apply_model_variation_pelvis_position_scale (value: number): void {
+    this.model_variation_pelvis_position_scale = value
 
     if (this.animation_clips_loaded.length === 0) {
       return
@@ -369,6 +389,13 @@ export class StepAnimationsListing extends EventTarget {
 
     /// Apply the arm extension warp:
     AnimationUtility.apply_arm_extension_warp(this.animation_clips_loaded, this.arm_extension_control.value())
+
+    /// Raise/lower the hips to match the proportions of the active model variation:
+    AnimationUtility.apply_position_tracking_bone_scale(
+      this.animation_clips_loaded,
+      RigConfig.by_skeleton_type(this.skeleton_type)?.position_tracking_bone_name,
+      this.model_variation_pelvis_position_scale
+    )
   }
 
   /**
