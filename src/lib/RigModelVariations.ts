@@ -17,11 +17,11 @@ export interface ModelVariation {
 
 function createVariation(type: string, spec: VariationSpec): ModelVariation {
   return {
-    model_file: `models-variation/${type}-${spec.variant}.glb`, // all variations are in the same folder for now
+    model_file: `models-variation/${type}/${spec.variant}.glb`, // all variations are in the same folder for now
     display_name: spec.displayName,
     attribution: spec.attribution ?? '', // attribution only needed for CC-SA and CC-BY
     license: spec.license ?? 'CC0', // defaults to CC0 unless otherwise specified
-    preview_image: `models-variation/profiles/${spec.variant}.png`, // all preview images are stored in the profiles folder
+    preview_image: `models-variation/${type}/preview/${spec.variant}.png`, // all preview images are stored in the profiles folder
     expandArms: spec.expandArms ?? 0 // default to 0 unless a human variation overrides it for the Explore page
   }
 }
@@ -30,11 +30,14 @@ const HUMAN_TYPE = 'human'
 export const humanVariations: ModelVariation[] = [
   createVariation(HUMAN_TYPE, { variant: 'male', displayName: 'Male', attribution: 'Quaternius', license: 'CC0' }),
   createVariation(HUMAN_TYPE, { variant: 'female', displayName: 'Female', attribution: 'Quaternius', license: 'CC0' }),
+  createVariation(HUMAN_TYPE, { variant: 'female9', displayName: 'Female 9', attribution: '', license: 'CC0' }),
   createVariation(HUMAN_TYPE, { variant: 'zombie', displayName: 'Zombie', attribution: 'Kenney.nl', license: 'CC0' }),
   createVariation(HUMAN_TYPE, { variant: 'sophia', displayName: 'Sophia', attribution: 'Tysan Tan', license: 'CC-SA 4.0' }),
   createVariation(HUMAN_TYPE, { variant: 'jay', displayName: 'Jay', attribution: 'Blender Studio', license: 'CC-BY' }),
   createVariation(HUMAN_TYPE, { variant: 'sintel', displayName: 'Sintel', attribution: 'Blender Studio', license: 'CC-BY' }),
   createVariation(HUMAN_TYPE, { variant: 'bunny', displayName: 'Bunny', attribution: 'Blender Studio', license: 'CC-BY', expandArms: -30 }),
+  createVariation(HUMAN_TYPE, { variant: 'killer6', displayName: 'Killer 6', attribution: '', license: 'CC-BY'}),
+  createVariation(HUMAN_TYPE, { variant: 'killer7', displayName: 'Killer 7', attribution: '', license: 'CC-BY'}),
 ]
 
 const FOX_TYPE = 'fox'
@@ -53,7 +56,7 @@ export const birdVariations: ModelVariation[] = [
 
 const KAIJU_TYPE = 'kaiju'
 export const kaijuVariations: ModelVariation[] = [
-  createVariation(KAIJU_TYPE, { variant: 'kaiju', displayName: 'Kaiju' }),
+  createVariation(KAIJU_TYPE, { variant: 'lizard', displayName: 'Lizard' }),
   createVariation(KAIJU_TYPE, { variant: 't-rex', displayName: 'T-Rex' }),
 ]
 
