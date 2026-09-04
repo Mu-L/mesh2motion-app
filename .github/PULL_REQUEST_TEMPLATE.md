@@ -1,6 +1,6 @@
 ### Before opening this pull request
 
-Please discuss the problem and proposed approach in the Mesh2Motion Discord (https://discord.gg/UChE936q7y) before submitting code. This project receives a large number of untested changes, so discussion helps us confirm that:
+Please discuss the problem and proposed approach in the Mesh2Motion Discord (https://discord.gg/UChE936q7y) before submitting code. This project receives a too many untested changes, so discussion helps me confirm that:
 
 - The problem is real and affects the project or its users.
 - The approach is consistent with the existing workflow and project direction.
@@ -12,7 +12,7 @@ Please discuss the problem and proposed approach in the Mesh2Motion Discord (htt
 Make sure to include these type of details
 
 - **Description on the current problem, and your proposed solution**
-- **Steps to reproduce the bug**
+- **Steps to reproduce the bug, or use the new feature**
 
 
 ### Checklist before submitting
