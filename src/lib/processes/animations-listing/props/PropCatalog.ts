@@ -53,7 +53,7 @@ export class PropCatalog {
   private static readonly model_cache = new Map<string, Promise<Group>>()
 
   private static readonly definitions: PropDefinition[] = [
-    create_definition(PropType.Pole, 'Pole', 'Polearms', 'spear_A.glb', 0.93),
+    create_definition(PropType.Pole, 'Pole', 'Polearms', 'spear_A.glb'),
     create_definition(PropType.Halberd, 'Halberd', 'Polearms', 'halberd.glb'),
     create_definition(PropType.Staff, 'Staff', 'Staves', 'staff_A.glb'),
     create_definition(PropType.StaffB, 'Staff B', 'Staves', 'staff_B.glb'),
@@ -69,9 +69,8 @@ export class PropCatalog {
     create_definition(PropType.DaggerA, 'Dagger A', 'Daggers', 'dagger_A.glb'),
     create_definition(PropType.DaggerB, 'Dagger B', 'Daggers', 'dagger_B.glb'),
     create_definition(PropType.FistWeaponA, 'Fist Weapon A', 'Fist Weapons', 'fistweapon_A.glb'),
-    create_definition(PropType.FistWeaponAStacked, 'Fist Weapon A (Stacked)', 'Fist Weapons', 'fistweapon_A_stacked.glb'),
+    // this is having a weird rotation offset between the right and left hand. need to do more research later
     create_definition(PropType.FistWeaponB, 'Fist Weapon B', 'Fist Weapons', 'fistweapon_B.glb'),
-    create_definition(PropType.FistWeaponBStacked, 'Fist Weapon B (Stacked)', 'Fist Weapons', 'fistweapon_B_stacked.glb'),
     create_definition(PropType.HammerA, 'Hammer A', 'Hammers', 'hammer_A.glb'),
     create_definition(PropType.HammerB, 'Hammer B', 'Hammers', 'hammer_B.glb'),
     create_definition(PropType.HammerC, 'Hammer C', 'Hammers', 'hammer_C.glb'),

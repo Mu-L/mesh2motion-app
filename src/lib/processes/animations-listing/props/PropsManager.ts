@@ -1,4 +1,4 @@
-import { Mesh, Quaternion, type Bone, type Object3D, type Skeleton, type SkinnedMesh, Vector3 } from 'three'
+import { type Euler, Matrix4, Mesh, Quaternion, type Bone, type Object3D, type Skeleton, type SkinnedMesh, Vector3 } from 'three'
 import { SkeletonType } from '../../../enums/SkeletonType.ts'
 import { PropCatalog } from './PropCatalog.ts'
 import { PropSide } from './PropSide.ts'
@@ -11,6 +11,18 @@ import { PROP_USER_DATA_KEY } from './PropsExportFilter.ts'
 interface HandGripFrame {
   local_down: Vector3
   local_forward: Vector3
+}
+
+export function mount_quaternion (local_forward: Vector3, local_down: Vector3, rotation: Euler): Quaternion {
+  const local_up = local_down.clone().negate()
+  const local_right = new Vector3().crossVectors(local_forward, local_up)
+  return new Quaternion()
+    .setFromRotationMatrix(new Matrix4().makeBasis(local_right, local_forward, local_up))
+    .multiply(new Quaternion().setFromEuler(rotation))
+}
+
+export function mount_scale (side: PropSide, size_factor: number): Vector3 {
+  return new Vector3(side === PropSide.Left ? -size_factor : size_factor, size_factor, size_factor)
 }
 
 /**
@@ -152,16 +164,14 @@ export class PropsManager extends EventTarget {
 
     const { local_down, local_forward } = this.grip_frames.get(hand_bone) ?? this.compute_grip_frame(hand_bone)
 
-    prop_object.quaternion
-      .setFromUnitVectors(new Vector3(0, 1, 0), local_forward)
-      .multiply(new Quaternion().setFromEuler(mount_offset.rotation))
+    prop_object.quaternion.copy(mount_quaternion(local_forward, local_down, mount_offset.rotation))
 
     prop_object.position
       .set(0, mount_offset.along_hand, 0)
       .addScaledVector(local_down, mount_offset.below_palm)
       .multiplyScalar(size_factor)
 
-    prop_object.scale.setScalar(size_factor)
+    prop_object.scale.copy(mount_scale(side, size_factor))
 
     hand_bone.add(prop_object)
     this.attached_props.push(prop_object)

@@ -1,0 +1,8 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^npx vitest run src/lib/processes/animations-listing/props/Props\\.test\\.ts$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}

@@ -1,10 +1,11 @@
 import { describe, it, expect } from 'vitest'
-import { Bone, Group, Mesh, Skeleton } from 'three'
+import { Bone, Euler, Group, Mesh, Quaternion, Skeleton, Vector3 } from 'three'
 import { HandBoneResolver } from './HandBoneResolver'
 import { PropCatalog } from './PropCatalog'
 import { PropType } from './PropType'
 import { PropsExportFilter, PROP_USER_DATA_KEY } from './PropsExportFilter'
 import { PropSide } from './PropSide'
+import { mount_quaternion, mount_scale } from './PropsManager'
 
 function make_skeleton (names: string[]): Skeleton {
   return new Skeleton(names.map((name) => {
@@ -42,6 +43,23 @@ describe('HandBoneResolver', () => {
   it('returns null when the hand bone is missing', () => {
     const skeleton = make_skeleton(['pelvis', 'hand_r'])
     expect(HandBoneResolver.resolve(skeleton, PropSide.Left)).toBeNull()
+  })
+})
+
+describe('mount_quaternion', () => {
+  it('mirrors the prop geometry while preserving the grip and face directions', () => {
+    for (const [side, hand_rotation] of [[PropSide.Left, new Euler(0, 0, Math.PI / 2)], [PropSide.Right, new Euler(0, 0, -Math.PI / 2)]] as const) {
+      const hand_quaternion = new Quaternion().setFromEuler(hand_rotation)
+      const world_to_local = hand_quaternion.clone().invert()
+      const local_forward = new Vector3(0, 0, 1).applyQuaternion(world_to_local)
+      const local_down = new Vector3(0, -1, 0).applyQuaternion(world_to_local)
+      const prop_world_quaternion = hand_quaternion.multiply(mount_quaternion(local_forward, local_down, new Euler()))
+      const prop_scale = mount_scale(side, 2)
+
+      expect(new Vector3(0, 1, 0).applyQuaternion(prop_world_quaternion).distanceTo(new Vector3(0, 0, 1))).toBeLessThan(1e-6)
+      expect(new Vector3(0, 0, 1).applyQuaternion(prop_world_quaternion).distanceTo(new Vector3(0, 1, 0))).toBeLessThan(1e-6)
+      expect(new Vector3(1, 0, 0).multiply(prop_scale).applyQuaternion(prop_world_quaternion).x).toBe(side === PropSide.Left ? 2 : -2)
+    }
   })
 })
 
