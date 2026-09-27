@@ -20,6 +20,7 @@ export interface PropDefinition {
   display_name: string
   category: PropCategory
   asset_path: string
+  preview_path: string
   model_offset_y: number
   default_mount_offsets: Record<PropSide, PropMountOffset>
   rig_mount_offsets: Partial<Record<SkeletonType, Record<PropSide, PropMountOffset>>>
@@ -37,6 +38,7 @@ function create_definition (
     display_name,
     category,
     asset_path: `props/${filename}`,
+    preview_path: `props/preview/${filename.replace(/\.glb$/, '.png')}`,
     model_offset_y,
     default_mount_offsets: {
       [PropSide.Left]: { along_hand: 0.09, below_palm: 0.035, rotation: new Euler() },

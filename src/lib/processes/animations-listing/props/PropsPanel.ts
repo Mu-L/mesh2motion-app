@@ -7,6 +7,7 @@ import { type PropSelection } from './PropSelection.ts'
 export class PropsPanel extends EventTarget {
   private readonly ui: UI = UI.getInstance()
   private readonly selects = new Map<PropSide, HTMLSelectElement>()
+  private readonly previews = new Map<PropSide, HTMLImageElement>()
   private dom_panel: HTMLElement | null = null
   private added_event_listeners: boolean = false
 
@@ -37,7 +38,15 @@ export class PropsPanel extends EventTarget {
       }
 
       this.selects.set(side, select)
-      select.addEventListener('change', () => { this.dispatch_selection_changed() })
+      const preview = mount.querySelector<HTMLImageElement>(`#props-${side}-hand-preview`)
+      if (preview !== null) {
+        this.previews.set(side, preview)
+      }
+
+      select.addEventListener('change', () => {
+        this.update_preview(side)
+        this.dispatch_selection_changed()
+      })
     })
 
     this.ui.dom_props_toggle_button?.addEventListener('click', () => {
@@ -82,6 +91,28 @@ export class PropsPanel extends EventTarget {
 
     if (left_select !== undefined) { left_select.value = selection.left }
     if (right_select !== undefined) { right_select.value = selection.right }
+
+    this.update_preview(PropSide.Left)
+    this.update_preview(PropSide.Right)
+  }
+
+  private update_preview (side: PropSide): void {
+    const preview = this.previews.get(side)
+    if (preview === undefined) {
+      return
+    }
+
+    const definition = PropCatalog.find(this.selected_prop(side))
+    if (definition === undefined) {
+      preview.removeAttribute('src')
+      preview.alt = ''
+      preview.hidden = true
+      return
+    }
+
+    preview.src = definition.preview_path
+    preview.alt = definition.display_name
+    preview.hidden = false
   }
 
   private set_expanded (is_expanded: boolean): void {
@@ -113,7 +144,12 @@ export class PropsPanel extends EventTarget {
     return `
       <label class="props-panel-row" for="props-${side}-hand-select">
         <span>${label}</span>
-        <select id="props-${side}-hand-select">${options_html}</select>
+        <span class="props-panel-control">
+          <span class="props-panel-preview">
+            <img id="props-${side}-hand-preview" alt="" hidden>
+          </span>
+          <select id="props-${side}-hand-select">${options_html}</select>
+        </span>
       </label>
     `
   }

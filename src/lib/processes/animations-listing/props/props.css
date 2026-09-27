@@ -51,6 +51,34 @@
     color: var(--text-alternate);
 }
 
+.props-panel-control {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.props-panel-preview {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 2.5rem;
+    height: 2.5rem;
+    border: 1px solid var(--bg-tertiary);
+    border-radius: 4px;
+    background: var(--bg-alternate);
+}
+
+.props-panel-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.props-panel-preview img[hidden] {
+    display: none;
+}
+
 .props-panel-row select {
     min-width: 8rem;
 }
