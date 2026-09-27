@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import { Bone, Group, Mesh, Skeleton } from 'three'
 import { HandBoneResolver } from './HandBoneResolver'
+import { PropCatalog } from './PropCatalog'
+import { ProceduralPropBuilder } from './ProceduralPropBuilder'
+import { PropType } from './PropType'
 import { PropsExportFilter, PROP_USER_DATA_KEY } from './PropsExportFilter'
 import { PropSide } from './PropSide'
 
@@ -11,6 +14,17 @@ function make_skeleton (names: string[]): Skeleton {
     return bone
   }))
 }
+
+describe('Procedural props', () => {
+  it('keeps the staff centered and places the pole origin at its base', () => {
+    const staff_mesh = ProceduralPropBuilder.create_staff().children[0] as Mesh
+    const pole_mesh = ProceduralPropBuilder.create_pole().children[0] as Mesh
+
+    expect(staff_mesh.position.y).toBe(0)
+    expect(pole_mesh.position.y).toBe(0.75)
+    expect(PropCatalog.all().map((definition) => definition.type)).toEqual([PropType.Pole, PropType.Staff])
+  })
+})
 
 describe('HandBoneResolver', () => {
   it('finds exact hand bone names', () => {

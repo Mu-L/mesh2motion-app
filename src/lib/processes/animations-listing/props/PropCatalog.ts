@@ -34,6 +34,16 @@ export class PropCatalog {
         [PropSide.Right]: { along_hand: 0.09, below_palm: 0.035, rotation: new Euler() }
       },
       rig_mount_offsets: {}
+    },
+    {
+      type: PropType.Staff,
+      display_name: 'Staff',
+      create_object: () => ProceduralPropBuilder.create_staff(),
+      default_mount_offsets: {
+        [PropSide.Left]: { along_hand: 0.09, below_palm: 0.035, rotation: new Euler() },
+        [PropSide.Right]: { along_hand: 0.09, below_palm: 0.035, rotation: new Euler() }
+      },
+      rig_mount_offsets: {}
     }
   ]
 
