@@ -21,7 +21,7 @@ export class PropsPanel extends EventTarget {
     }
 
     mount.innerHTML = `
-      <div class="props-panel" hidden>
+      <div class="props-panel" role="region" aria-label="Props" hidden>
         <div class="props-panel-header">Props</div>
         ${this.side_row_html(PropSide.Left, 'Left hand')}
         ${this.side_row_html(PropSide.Right, 'Right hand')}
@@ -44,12 +44,21 @@ export class PropsPanel extends EventTarget {
       this.set_expanded(this.dom_panel?.hidden === true)
     })
 
+    // keep the floating panel docked beside the tool panel as its width changes
+    const tool_panel = document.querySelector<HTMLElement>('#tool-panel')
+    const dock = this.ui.dom_props_dock
+    if (tool_panel !== null && dock !== null) {
+      new ResizeObserver(() => {
+        dock.style.right = `calc(${tool_panel.offsetWidth}px + 0.5rem)`
+      }).observe(tool_panel)
+    }
+
     this.added_event_listeners = true
   }
 
   public set_visible (is_visible: boolean): void {
-    if (this.ui.dom_props_toggle_button !== null) {
-      this.ui.dom_props_toggle_button.style.display = is_visible ? '' : 'none'
+    if (this.ui.dom_props_dock !== null) {
+      this.ui.dom_props_dock.style.display = is_visible ? '' : 'none'
     }
 
     if (!is_visible) {

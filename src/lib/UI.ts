@@ -102,6 +102,7 @@ export class UI {
   dom_import_animations_input: HTMLInputElement | null = null
   dom_props_toggle_button: HTMLButtonElement | null = null
   dom_props_panel_mount: HTMLElement | null = null
+  dom_props_dock: HTMLElement | null = null
   dom_extend_arm_range_input: HTMLInputElement | null = null
   dom_extend_arm_numeric_input: HTMLInputElement | null = null
   dom_arm_extension_options: HTMLElement | null = null
@@ -227,6 +228,7 @@ export class UI {
     this.dom_import_animations_button = document.querySelector('#import-animations-button')
     this.dom_props_toggle_button = document.querySelector('#props-toggle-button')
     this.dom_props_panel_mount = document.querySelector('#props-panel-mount')
+    this.dom_props_dock = document.querySelector('#props-dock')
     this.dom_import_animations_input = document.querySelector('#import-animations-input')
     this.dom_mirror_animations_checkbox = document.querySelector('#mirror-animations-checkbox')
     this.dom_reset_arm_extension_button = document.querySelector('#reset-arm-extension-button')
@@ -286,6 +288,9 @@ export class UI {
     }
     if (this.dom_skinned_mesh_animation_tools != null) {
       this.dom_skinned_mesh_animation_tools.style.display = 'none'
+    }
+    if (this.dom_props_dock != null) {
+      this.dom_props_dock.style.display = 'none'
     }
     if (this.dom_show_skeleton_container != null) {
       this.dom_show_skeleton_container.style.display = 'none'

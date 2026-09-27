@@ -146,8 +146,6 @@
                          that we get from the animations file(s)  -->
                     <div id="animations-items"> </div>
 
-                    <div id="props-panel-mount"></div>
-
                     <div class="download-actions-row">
                         
                         <!-- testing the mirroring options. Hide this for now until we get a better implementation for per animations -->
@@ -163,10 +161,6 @@
                         </button>
                         <input id="import-animations-input" type="file" accept=".glb" multiple style="display:none" />
 
-                        <button class="secondary-button" id="props-toggle-button" style="display: none" aria-expanded="false" data-tippy-content="Attach props to the hands" aria-label="Attach props to the hands">
-                            <img src="images/icons/props.svg" alt="Props" width="20" height="20" />
-                        </button>
-
                         <div id="download-control-mount"></div>
                     </div>
 
@@ -181,6 +175,14 @@
         </div>
 
     </div> <!-- end tool-panel-->
+
+    <!-- floating props toggle and panel docked to the left of the tool panel -->
+    <div id="props-dock" style="display: none">
+        <button class="secondary-button" id="props-toggle-button" aria-expanded="false" aria-controls="props-panel-mount" data-tippy-content="Attach props to the hands" aria-label="Attach props to the hands">
+            <img src="images/icons/props.svg" alt="Props" width="32" height="32" />
+        </button>
+        <div id="props-panel-mount"></div>
+    </div>
 
     <div id="animation-player-mount"></div>
 
