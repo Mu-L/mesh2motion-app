@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest'
 import { Bone, Group, Mesh, Skeleton } from 'three'
 import { HandBoneResolver } from './HandBoneResolver'
 import { PropCatalog } from './PropCatalog'
-import { ProceduralPropBuilder } from './ProceduralPropBuilder'
 import { PropType } from './PropType'
 import { PropsExportFilter, PROP_USER_DATA_KEY } from './PropsExportFilter'
 import { PropSide } from './PropSide'
@@ -15,14 +14,15 @@ function make_skeleton (names: string[]): Skeleton {
   }))
 }
 
-describe('Procedural props', () => {
-  it('keeps the staff centered and places the pole origin at its base', () => {
-    const staff_mesh = ProceduralPropBuilder.create_staff().children[0] as Mesh
-    const pole_mesh = ProceduralPropBuilder.create_pole().children[0] as Mesh
+describe('PropCatalog', () => {
+  it('registers every bundled prop model and keeps legacy Pole and Staff choices', () => {
+    const definitions = PropCatalog.all()
 
-    expect(staff_mesh.position.y).toBe(0)
-    expect(pole_mesh.position.y).toBe(0.75)
-    expect(PropCatalog.all().map((definition) => definition.type)).toEqual([PropType.Pole, PropType.Staff])
+    expect(definitions).toHaveLength(31)
+    expect(new Set(definitions.map((definition) => definition.asset_path)).size).toBe(31)
+    expect(PropCatalog.find(PropType.Pole)?.asset_path).toBe('props/spear_A.glb')
+    expect(PropCatalog.find(PropType.Pole)?.model_offset_y).toBe(0.93)
+    expect(PropCatalog.find(PropType.Staff)?.asset_path).toBe('props/staff_A.glb')
   })
 })
 

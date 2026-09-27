@@ -97,9 +97,17 @@ export class PropsPanel extends EventTarget {
   }
 
   private side_row_html (side: PropSide, label: string): string {
+    const definitions = PropCatalog.all()
+    const categories = Array.from(new Set(definitions.map((definition) => definition.category)))
     const options_html = [
       `<option value="${PropType.None}">None</option>`,
-      ...PropCatalog.all().map((definition) => `<option value="${definition.type}">${definition.display_name}</option>`)
+      ...categories.map((category) => {
+        const category_options = definitions
+          .filter((definition) => definition.category === category)
+          .map((definition) => `<option value="${definition.type}">${definition.display_name}</option>`)
+          .join('')
+        return `<optgroup label="${category}">${category_options}</optgroup>`
+      })
     ].join('')
 
     return `

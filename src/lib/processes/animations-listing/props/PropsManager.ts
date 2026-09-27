@@ -26,6 +26,7 @@ export class PropsManager extends EventTarget {
   private attached_props: Object3D[] = []
   private readonly grip_frames = new Map<Bone, HandGripFrame>()
   private added_event_listeners: boolean = false
+  private attachment_generation: number = 0
 
   public begin (skeleton_type: SkeletonType, skeleton_scale: number): void {
     this.panel.initialize()
@@ -62,6 +63,7 @@ export class PropsManager extends EventTarget {
    * would also dispose any prop still parented to their bones.
    */
   public detach_all (): void {
+    this.attachment_generation++
     this.dispose_attached_props()
     this.grip_frames.clear()
     this.target_skinned_meshes = []
@@ -91,6 +93,7 @@ export class PropsManager extends EventTarget {
   }
 
   private refresh_attached_props (): void {
+    const generation = ++this.attachment_generation
     this.dispose_attached_props()
 
     if (!PropCatalog.is_supported_skeleton(this.skeleton_type)) {
@@ -110,20 +113,34 @@ export class PropsManager extends EventTarget {
         }
 
         found_hand_bone = true
-        this.attach_prop(prop_type, side, hand_bone)
+        void this.attach_prop(prop_type, side, hand_bone, generation)
       })
 
       this.panel.set_side_enabled(side, skeletons.length === 0 || found_hand_bone)
     })
   }
 
-  private attach_prop (prop_type: PropType, side: PropSide, hand_bone: Bone): void {
+  private async attach_prop (prop_type: PropType, side: PropSide, hand_bone: Bone, generation: number): Promise<void> {
     const definition = PropCatalog.find(prop_type)
     if (definition === undefined) {
       return
     }
 
-    const prop_object = definition.create_object()
+    let prop_object: Object3D
+    try {
+      prop_object = await PropCatalog.create_object(definition)
+    } catch (error) {
+      if (generation === this.attachment_generation) {
+        console.error(`Failed to load prop model ${definition.asset_path}:`, error)
+      }
+      return
+    }
+
+    if (generation !== this.attachment_generation) {
+      this.dispose_prop_object(prop_object)
+      return
+    }
+
     prop_object.name = `prop_${prop_type}_${side}`
     prop_object.userData[PROP_USER_DATA_KEY] = true
 
@@ -156,16 +173,20 @@ export class PropsManager extends EventTarget {
 
   private dispose_attached_props (): void {
     this.attached_props.forEach((prop_object) => {
-      prop_object.removeFromParent()
-      prop_object.traverse((child) => {
-        if (child instanceof Mesh) {
-          child.geometry.dispose()
-          const materials = Array.isArray(child.material) ? child.material : [child.material]
-          materials.forEach((material) => { material.dispose() })
-        }
-      })
+      this.dispose_prop_object(prop_object)
     })
 
     this.attached_props = []
+  }
+
+  private dispose_prop_object (prop_object: Object3D): void {
+    prop_object.removeFromParent()
+    prop_object.traverse((child) => {
+      if (child instanceof Mesh) {
+        child.geometry.dispose()
+        const materials = Array.isArray(child.material) ? child.material : [child.material]
+        materials.forEach((material) => { material.dispose() })
+      }
+    })
   }
 }
