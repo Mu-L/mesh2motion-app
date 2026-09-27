@@ -1,8 +1,3 @@
-#props-toggle-button.active {
-    background: var(--bg-alternate);
-    outline: 1px solid var(--text-primary);
-}
-
 #props-dock {
     position: fixed;
     top: calc(var(--navigation-height) + 0.5rem);
@@ -20,18 +15,31 @@
     order: -1;
 }
 
-#props-toggle-button {
+#props-toggle-button,
+#props-close-button {
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 0.5rem;
 }
 
+#props-toggle-button[hidden] {
+    display: none;
+}
+
+/* close button sits at the far right of the open panel, where the toggle was */
+#props-close-button {
+    align-self: center;
+    margin-left: auto;
+    background: var(--bg-alternate);
+    outline: 1px solid var(--text-primary);
+}
+
 .props-panel {
     display: flex;
     flex-direction: row;
     gap: 1rem;
-    padding: 0.5rem 0.75rem;
+    padding: 1.0rem;
     border: 1px solid var(--bg-tertiary);
     border-radius: 6px;
     background: color-mix(in srgb, var(--bg-primary) 90%, black);

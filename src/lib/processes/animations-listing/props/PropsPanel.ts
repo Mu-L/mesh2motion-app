@@ -26,8 +26,14 @@ export class PropsPanel extends EventTarget {
     this.left_picker.addEventListener('change', () => { this.dispatch_selection_changed() })
     this.right_picker.addEventListener('change', () => { this.dispatch_selection_changed() })
 
+    // the toggle only shows while collapsed; the close button inside the panel collapses it
     this.ui.dom_props_toggle_button?.addEventListener('click', () => {
-      this.set_expanded(this.ui.dom_props_panel?.hidden === true)
+      this.set_expanded(true)
+      this.ui.dom_props_close_button?.focus()
+    })
+    this.ui.dom_props_close_button?.addEventListener('click', () => {
+      this.set_expanded(false)
+      this.ui.dom_props_toggle_button?.focus()
     })
 
     // keep the floating panel docked beside the tool panel as its width changes
@@ -70,7 +76,7 @@ export class PropsPanel extends EventTarget {
     const toggle_button = this.ui.dom_props_toggle_button
     if (toggle_button !== null) {
       toggle_button.setAttribute('aria-expanded', String(is_expanded))
-      toggle_button.classList.toggle('active', is_expanded)
+      toggle_button.hidden = is_expanded
     }
 
     if (!is_expanded) {
