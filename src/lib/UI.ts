@@ -101,7 +101,7 @@ export class UI {
   dom_import_animations_button: HTMLButtonElement | null = null
   dom_import_animations_input: HTMLInputElement | null = null
   dom_props_toggle_button: HTMLButtonElement | null = null
-  dom_props_panel_mount: HTMLElement | null = null
+  dom_props_panel: HTMLElement | null = null
   dom_props_dock: HTMLElement | null = null
   dom_extend_arm_range_input: HTMLInputElement | null = null
   dom_extend_arm_numeric_input: HTMLInputElement | null = null
@@ -227,7 +227,7 @@ export class UI {
     this.dom_export_button = document.querySelector('#export-button')
     this.dom_import_animations_button = document.querySelector('#import-animations-button')
     this.dom_props_toggle_button = document.querySelector('#props-toggle-button')
-    this.dom_props_panel_mount = document.querySelector('#props-panel-mount')
+    this.dom_props_panel = document.querySelector('#props-panel')
     this.dom_props_dock = document.querySelector('#props-dock')
     this.dom_import_animations_input = document.querySelector('#import-animations-input')
     this.dom_mirror_animations_checkbox = document.querySelector('#mirror-animations-checkbox')
