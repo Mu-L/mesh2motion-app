@@ -18,6 +18,7 @@ import { type ThemeManager } from '../../ThemeManager.ts'
 import { AnimationSearch } from './AnimationSearch.ts'
 import { type AnimationClipMetadata, type TransformedAnimationClipPair } from './interfaces/TransformedAnimationClipPair.ts'
 import { type AnimationExportSelection } from './interfaces/AnimationExportSelection.ts'
+import { PropsManager } from './props/PropsManager.ts'
 
 // Note: EventTarget is a built-ininterface and do not need to import it
 export class StepAnimationsListing extends EventTarget {
@@ -43,6 +44,7 @@ export class StepAnimationsListing extends EventTarget {
   private model_variation_pelvis_position_scale: number = 1.0
 
   private readonly custom_animation_importer: CustomAnimationImporter
+  private readonly props_manager: PropsManager = new PropsManager()
 
   private _added_event_listeners: boolean = false
   private is_loading_default_animations: boolean = false
@@ -112,6 +114,7 @@ export class StepAnimationsListing extends EventTarget {
     this.custom_animation_importer.set_enabled(!this.is_loading_default_animations)
 
     this.skeleton_type = skeleton_type
+    this.props_manager.begin(skeleton_type, skeleton_scale)
 
     // if we are navigating back to this step, we don't want to add the event listeners again
     if (!this._added_event_listeners) {
@@ -125,6 +128,7 @@ export class StepAnimationsListing extends EventTarget {
   public reset_step_data (): void {
     // reset previous state if we are re-entering this step
     // this will happen if we are reskinning the mesh after changes
+    this.props_manager.detach_all()
     this.animation_clips_loaded = []
     this.skinned_meshes_to_animate = []
     this.animation_mixer = new AnimationMixer(new Object3D())
@@ -233,6 +237,7 @@ export class StepAnimationsListing extends EventTarget {
    */
   public swap_skinned_meshes (scene: Scene, new_skinned_meshes: SkinnedMesh[]): void {
     const is_variation_active = this.model_variation_switcher?.is_variation_active ?? false
+    this.props_manager.detach_all()
     this.clear_variation_model_from_scene()
 
     if (!is_variation_active) {
@@ -251,6 +256,7 @@ export class StepAnimationsListing extends EventTarget {
     }
 
     this.skinned_meshes_to_animate = new_skinned_meshes
+    this.props_manager.attach_to_skinned_meshes(new_skinned_meshes)
 
     // replay current animation on the new meshes
     this.play_animation(this.current_playing_index)
@@ -264,6 +270,7 @@ export class StepAnimationsListing extends EventTarget {
   public clear_variation_model_from_scene (): void {
     const is_variation_active = this.model_variation_switcher?.is_variation_active ?? false
     if (is_variation_active) {
+      this.props_manager.detach_all()
       for (const mesh of this.skinned_meshes_to_animate) {
         Utility.remove_object_with_children(mesh)
       }
@@ -275,6 +282,7 @@ export class StepAnimationsListing extends EventTarget {
 
   public load_and_apply_default_animation_to_skinned_mesh (final_skinned_meshes: SkinnedMesh[]): void {
     this.skinned_meshes_to_animate = final_skinned_meshes
+    this.props_manager.attach_to_skinned_meshes(final_skinned_meshes)
 
     // Set the animations file path on the loader
     this.animation_loader.set_animations_file_path(this.animations_file_path)

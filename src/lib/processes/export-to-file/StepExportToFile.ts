@@ -10,6 +10,7 @@ import { GlbSkinCleanupService } from './GlbSkinCleanupService.ts'
 import { AnimationUtility } from '../animations-listing/AnimationUtility.ts'
 import { type AnimationExportSelection } from '../animations-listing/interfaces/AnimationExportSelection.ts'
 import { FbxTextureCompatibilityService } from './FbxTextureCompatibilityService.ts'
+import { PropsExportFilter } from '../animations-listing/props/PropsExportFilter.ts'
 
 // Note: EventTarget is a built-in interface and do not need to import it
 export class StepExportToFile extends EventTarget {
@@ -74,6 +75,7 @@ export class StepExportToFile extends EventTarget {
     // to work against the exported skeleton.
     const skeleton_only = download_settings.export_contents() === ExportContents.Skeleton
     const objects_to_export: Object3D[] = ExportHierarchyService.collect_objects_to_export(skinned_meshes, skeleton_only)
+    const restore_props = skeleton_only ? PropsExportFilter.detach_props(objects_to_export) : () => {}
 
     // The base animation data can contain tracks for joints the user removed (e.g. fingers),
     // and keyframe times can contain float32 duplicates that glTF validators reject.
@@ -115,11 +117,13 @@ export class StepExportToFile extends EventTarget {
           }
         })
 
+        restore_props()
         restore_bone_names()
       })
       .catch((error) => {
         console.log('Error exporting file:', error)
 
+        restore_props()
         restore_bone_names()
 
         throw error

@@ -23,6 +23,7 @@
     <link rel="stylesheet" href="./dialog.css" crossorigin="anonymous" />
     <link rel="stylesheet" href="./settings-dropdown.css" crossorigin="anonymous" />
     <link rel="stylesheet" href="./offline.css" crossorigin="anonymous" />
+    <link rel="stylesheet" href="./lib/processes/animations-listing/props/props.css" crossorigin="anonymous" />
 
 
     <nav>
@@ -365,6 +366,8 @@
             <!-- slider to control arm extension. shared with the retarget workflow -->
             <div id="arm-extension-mount"></div>
 
+            <div id="props-panel-mount"></div>
+
             <div class="download-actions-row">
               <button class="no-style-button" id="action_back_to_edit_skeleton">
                 &#x2039; Back
@@ -409,6 +412,17 @@
                 multiple
                 style="display: none"
               />
+
+              <button
+                class="secondary-button"
+                id="props-toggle-button"
+                style="display: none"
+                aria-expanded="false"
+                data-tippy-content="Attach props to the hands"
+                aria-label="Attach props to the hands"
+              >
+                <img src="images/icons/props.svg" alt="Props" width="16" height="16" />
+              </button>
 
               <div id="download-control-mount"></div>
             </div>
