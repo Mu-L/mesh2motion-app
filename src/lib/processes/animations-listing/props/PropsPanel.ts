@@ -21,8 +21,8 @@ export class PropsPanel extends EventTarget {
       return
     }
 
-    this.left_picker = new PropPicker(dom_left_hand, 'Left hand')
-    this.right_picker = new PropPicker(dom_right_hand, 'Right hand')
+    this.left_picker = new PropPicker(dom_left_hand, 'Left')
+    this.right_picker = new PropPicker(dom_right_hand, 'Right')
     this.left_picker.addEventListener('change', () => { this.dispatch_selection_changed() })
     this.right_picker.addEventListener('change', () => { this.dispatch_selection_changed() })
 

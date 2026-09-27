@@ -4,7 +4,7 @@ import { PropType } from './PropType.ts'
 /**
  * Custom dropdown for choosing a prop. A native <select> cannot render images
  * inside its options, so this implements the ARIA listbox pattern: a trigger
- * button that shows the current prop, and a popup grid of preview tiles.
+ * button that shows the current prop, and a popup list with preview images.
  */
 export class PropPicker extends EventTarget {
   private readonly id: string
@@ -137,10 +137,8 @@ export class PropPicker extends EventTarget {
     let next_index: number | null = null
 
     switch (event.key) {
-      case 'ArrowRight': next_index = Math.min(this.active_index + 1, this.options.length - 1); break
-      case 'ArrowLeft': next_index = Math.max(this.active_index - 1, 0); break
-      case 'ArrowDown': next_index = this.vertical_neighbor(1); break
-      case 'ArrowUp': next_index = this.vertical_neighbor(-1); break
+      case 'ArrowDown': next_index = Math.min(this.active_index + 1, this.options.length - 1); break
+      case 'ArrowUp': next_index = Math.max(this.active_index - 1, 0); break
       case 'Home': next_index = 0; break
       case 'End': next_index = this.options.length - 1; break
       case 'Enter':
@@ -162,36 +160,6 @@ export class PropPicker extends EventTarget {
 
     event.preventDefault()
     this.set_active(next_index)
-  }
-
-  // the grid wraps per category, so find the tile in the adjacent row by layout position
-  private vertical_neighbor (direction: 1 | -1): number {
-    const current = this.options[this.active_index].getBoundingClientRect()
-    const current_center = current.left + current.width / 2
-
-    let best_index = this.active_index
-    let best_row_top: number | null = null
-    let best_distance = Infinity
-
-    this.options.forEach((option, index) => {
-      const rect = option.getBoundingClientRect()
-      const is_in_direction = direction === 1 ? rect.top > current.top + 1 : rect.top < current.top - 1
-      if (!is_in_direction) {
-        return
-      }
-
-      const is_closer_row = best_row_top === null || (direction === 1 ? rect.top < best_row_top - 1 : rect.top > best_row_top + 1)
-      const is_same_row = best_row_top !== null && Math.abs(rect.top - best_row_top) <= 1
-      const distance = Math.abs(rect.left + rect.width / 2 - current_center)
-
-      if (is_closer_row || (is_same_row && distance < best_distance)) {
-        best_index = index
-        best_row_top = rect.top
-        best_distance = distance
-      }
-    })
-
-    return best_index
   }
 
   private set_active (index: number, scroll_into_view: boolean = true): void {
