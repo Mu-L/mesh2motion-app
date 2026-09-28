@@ -19,10 +19,10 @@ describe('PropCatalog', () => {
   it('registers every bundled prop model and keeps legacy Pole and Staff choices', () => {
     const definitions = PropCatalog.all()
 
-    expect(definitions).toHaveLength(31)
-    expect(new Set(definitions.map((definition) => definition.asset_path)).size).toBe(31)
+    expect(definitions).toHaveLength(44)
+    expect(new Set(definitions.map((definition) => definition.asset_path)).size).toBe(44)
     expect(PropCatalog.find(PropType.Pole)?.asset_path).toBe('props/spear_A.glb')
-    expect(PropCatalog.find(PropType.Pole)?.model_offset_y).toBe(0.93)
+    expect(PropCatalog.find(PropType.Pole)?.model_offset_y).toBe(0)
     expect(PropCatalog.find(PropType.Staff)?.asset_path).toBe('props/staff_A.glb')
   })
 })

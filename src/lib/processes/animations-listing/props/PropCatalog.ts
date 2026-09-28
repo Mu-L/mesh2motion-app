@@ -4,7 +4,7 @@ import { SkeletonType } from '../../../enums/SkeletonType.ts'
 import { PropType } from './PropType.ts'
 import { PropSide } from './PropSide.ts'
 
-export type PropCategory = 'Polearms' | 'Staves' | 'Ranged' | 'Axes' | 'Daggers' | 'Fist Weapons' | 'Hammers' | 'Shields' | 'Swords' | 'Wands'
+export type PropCategory = 'Polearms' | 'Staves' | 'Ranged' | 'Axes' | 'Daggers' | 'Fist Weapons' | 'Hammers' | 'Shields' | 'Swords' | 'Wands' | 'Guns' | 'Tools'
 
 export interface PropMountOffset {
   // meters for a rig at skeleton scale 1.0, along the hand bone toward the fingers
@@ -70,6 +70,8 @@ export class PropCatalog {
     create_definition(PropType.AxeC, 'Broad-Headed Battle Axe', 'Axes', 'axe_C.glb'),
     create_definition(PropType.DaggerA, 'Double-Edged Dagger', 'Daggers', 'dagger_A.glb'),
     create_definition(PropType.DaggerB, 'Sai', 'Daggers', 'dagger_B.glb'),
+    create_definition(PropType.KnifeA, 'Combat Knife', 'Daggers', 'Knife_1.glb'),
+    create_definition(PropType.KnifeB, 'Hunting Knife', 'Daggers', 'Knife_2.glb'),
     create_definition(PropType.FistWeaponA, 'Brass Knuckles', 'Fist Weapons', 'fistweapon_A.glb'),
     create_definition(PropType.FistWeaponB, 'Tekko-Kagi (Hand Claws)', 'Fist Weapons', 'fistweapon_B.glb'),
     create_definition(PropType.HammerA, 'Sledgehammer', 'Hammers', 'hammer_A.glb'),
@@ -83,7 +85,20 @@ export class PropCatalog {
     create_definition(PropType.SwordC, 'Katana', 'Swords', 'sword_C.glb'),
     create_definition(PropType.SwordD, 'Rapier', 'Swords', 'sword_D.glb'),
     create_definition(PropType.SwordE, 'Greatsword', 'Swords', 'sword_E.glb'),
-    create_definition(PropType.WandA, 'Crystal Wand', 'Wands', 'wand_A.glb')
+    create_definition(PropType.WandA, 'Crystal Wand', 'Wands', 'wand_A.glb'),
+    create_definition(PropType.Pistol, 'Pistol', 'Guns', 'Pistol.glb'),
+    create_definition(PropType.Revolver, 'Revolver', 'Guns', 'Revolver.glb'),
+    create_definition(PropType.RevolverSmall, 'Snub-Nose Revolver', 'Guns', 'Revolver_Small.glb'),
+    create_definition(PropType.SMG, 'Submachine Gun', 'Guns', 'SMG.glb'),
+    create_definition(PropType.AK, 'Assault Rifle', 'Guns', 'AK.glb'),
+    create_definition(PropType.Shotgun, 'Shotgun', 'Guns', 'Shotgun.glb'),
+    create_definition(PropType.Sniper, 'Sniper Rifle', 'Guns', 'Sniper.glb'),
+    create_definition(PropType.SniperB, 'Heavy Sniper Rifle', 'Guns', 'Sniper_2.glb'),
+    create_definition(PropType.GrenadeLauncher, 'Grenade Launcher', 'Guns', 'GrenadeLauncher.glb'),
+    create_definition(PropType.RocketLauncher, 'Rocket Launcher', 'Guns', 'RocketLauncher.glb'),
+    create_definition(PropType.ShortCannon, 'Hand Cannon', 'Guns', 'ShortCannon.glb'),
+    create_definition(PropType.Shovel, 'Shovel', 'Tools', 'Shovel.glb'),
+    create_definition(PropType.Sickle, 'Sickle', 'Tools', 'Sickle.glb')
   ]
 
   public static all (): PropDefinition[] {

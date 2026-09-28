@@ -28,5 +28,20 @@ export enum PropType {
   SwordC = 'sword-c',
   SwordD = 'sword-d',
   SwordE = 'sword-e',
-  WandA = 'wand-a'
+  WandA = 'wand-a',
+  KnifeA = 'knife-a',
+  KnifeB = 'knife-b',
+  Shovel = 'shovel',
+  Sickle = 'sickle',
+  Pistol = 'pistol',
+  Revolver = 'revolver',
+  RevolverSmall = 'revolver-small',
+  SMG = 'smg',
+  AK = 'ak',
+  Shotgun = 'shotgun',
+  Sniper = 'sniper',
+  SniperB = 'sniper-b',
+  GrenadeLauncher = 'grenade-launcher',
+  RocketLauncher = 'rocket-launcher',
+  ShortCannon = 'short-cannon'
 }

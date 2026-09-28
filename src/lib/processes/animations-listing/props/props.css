@@ -139,8 +139,8 @@
     top: calc(100% + 0.25rem);
     right: 0;
     z-index: 20;
-    width: 22rem;
-    max-height: min(34rem, calc(100vh - var(--navigation-height) - 8rem));
+    width: 16rem;
+    max-height: calc(100vh - var(--navigation-height) - 17rem);
     overflow-y: auto;
     padding: 0.5rem;
     border: 1px solid var(--bg-tertiary);
@@ -160,17 +160,14 @@
 
 .prop-picker-group-label {
     margin: 0 0 0.25rem 0.15rem;
-
+    padding: 0.5rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     background: var(--bg-alternate);
+    text-align: center;
 }
 
-.prop-picker-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-}
+
 
 .prop-picker-option {
     display: flex;
